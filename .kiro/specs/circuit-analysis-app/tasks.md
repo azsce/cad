@@ -23,13 +23,22 @@
   - Implement selectors: getActiveCircuit, getCircuitById
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 3. Create three-pane application layout
+- [x] 3. Create three-pane application layout
+
+
+
+
   - Implement `src/App.tsx` with react-resizable-panels PanelGroup
   - Configure three panels: CircuitManager (20%, 15-30%), CircuitEditor (50%, 30%+), AnalysisPane (30%, 20%+)
   - Add PanelResizeHandle components between panes
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+-
 
-- [ ] 4. Build Circuit Manager pane
+- [x] 4. Build Circuit Manager pane
+
+
+
+
   - Create `src/components/CircuitManager/CircuitManagerPane.tsx`
   - Display list of all circuits with metadata (name, creation date, last modified)
   - Implement "New Circuit" button that calls store.createCircuit()
@@ -39,15 +48,22 @@
   - Highlight active circuit in the list
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 5. Implement custom circuit component nodes
-- [ ] 5.1 Create ResistorNode component
+- [x] 5. Implement custom circuit component nodes
+
+
+
+
+- [x] 5.1 Create ResistorNode component
+
   - Implement `src/components/CircuitEditor/nodes/ResistorNode.tsx`
   - Render SVG resistor symbol with two handles (left and right terminals)
   - Add inline editable resistance value input
   - Update store on value change
   - _Requirements: 2.2, 2.6_
 
-- [ ] 5.2 Create VoltageSourceNode component
+- [x] 5.2 Create VoltageSourceNode component
+
+
   - Implement `src/components/CircuitEditor/nodes/VoltageSourceNode.tsx`
   - Render SVG voltage source symbol with polarity indicators
   - Add two handles (top and bottom terminals)
@@ -55,7 +71,9 @@
   - Add inline editable voltage value input
   - _Requirements: 2.3, 2.4, 2.6_
 
-- [ ] 5.3 Create CurrentSourceNode component
+- [x] 5.3 Create CurrentSourceNode component
+
+
   - Implement `src/components/CircuitEditor/nodes/CurrentSourceNode.tsx`
   - Render SVG current source symbol with arrow indicator
   - Add two handles for connections
