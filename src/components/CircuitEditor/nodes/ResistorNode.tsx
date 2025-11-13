@@ -5,15 +5,16 @@
  */
 
 import { memo, useCallback, useState } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
+import { TextField, Tooltip, Box } from '@mui/material';
 import { useCircuitStore } from '../../../store/circuitStore';
-import type { CircuitNode } from '../../../types/circuit';
+import type { ResistorData } from '../../../types/circuit';
 
 /**
  * ResistorNode component.
  * Displays a resistor symbol with editable resistance value.
  */
-export const ResistorNode = memo(({ id, data }: NodeProps<CircuitNode>) => {
+export const ResistorNode = memo(({ id, data }: NodeProps<Node<ResistorData>>) => {
   const updateNode = useCircuitStore((state) => state.updateNode);
   const activeCircuit = useCircuitStore((state) => state.getActiveCircuit());
   const [isEditing, setIsEditing] = useState(false);
@@ -77,8 +78,8 @@ export const ResistorNode = memo(({ id, data }: NodeProps<CircuitNode>) => {
       </svg>
 
       {/* Editable resistance value */}
-      <div
-        style={{
+      <Box
+        sx={{
           position: 'absolute',
           bottom: -25,
           left: '50%',
@@ -89,41 +90,42 @@ export const ResistorNode = memo(({ id, data }: NodeProps<CircuitNode>) => {
         }}
       >
         {isEditing ? (
-          <input
-            type="text"
+          <TextField
             value={editValue}
-            onChange={(e) => {
-              setEditValue(e.target.value);
-            }}
+            onChange={(e) => { setEditValue(e.target.value); }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             autoFocus
-            style={{
+            size="small"
+            sx={{
               width: 60,
-              padding: 2,
-              fontSize: 12,
-              textAlign: 'center',
-              border: '1px solid #4A90E2',
-              borderRadius: 3,
+              '& .MuiInputBase-input': {
+                fontSize: 12,
+                textAlign: 'center',
+                padding: '2px 4px',
+              },
             }}
           />
         ) : (
-          <span
-            onClick={() => {
-              setIsEditing(true);
-            }}
-            style={{
-              cursor: 'pointer',
-              padding: '2px 6px',
-              borderRadius: 3,
-              background: '#f0f0f0',
-            }}
-            title="Click to edit"
-          >
-            {data.value}Ω
-          </span>
+          <Tooltip title="Click to edit resistance">
+            <Box
+              component="span"
+              onClick={() => { setIsEditing(true); }}
+              sx={{
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: 1,
+                bgcolor: 'action.hover',
+                '&:hover': {
+                  bgcolor: 'action.selected',
+                },
+              }}
+            >
+              {data.value}Ω
+            </Box>
+          </Tooltip>
         )}
-      </div>
+      </Box>
 
       {/* Right terminal handle */}
       <Handle

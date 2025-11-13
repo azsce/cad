@@ -66,6 +66,7 @@ Based on the existing `package.json` and steering documents:
 - **Build Tool**: Vite (rolldown-vite@7.2.2)
 - **Framework**: React 19.2.0
 - **Language**: TypeScript 6.0.0-dev with strict type checking
+- **Design System**: Material-UI (MUI) v6 (to be added)
 - **State Management**: Zustand (to be added)
 - **Visual Editor**: React Flow (to be added)
 - **Math Library**: mathjs (to be added)
@@ -78,6 +79,10 @@ Based on the existing `package.json` and steering documents:
 ```json
 {
   "dependencies": {
+    "@mui/material": "^6.1.0",
+    "@mui/icons-material": "^6.1.0",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
     "zustand": "^5.0.2",
     "@xyflow/react": "^12.3.5",
     "mathjs": "^14.0.1",
@@ -257,28 +262,69 @@ interface CircuitStore {
 
 ### Component Architecture
 
+#### 0. Theme Provider (`src/contexts/ThemeContext.tsx`)
+
+**Purpose**: Provide Material-UI theme with light/dark mode support.
+
+```typescript
+interface ThemeContextValue {
+  mode: 'light' | 'dark';
+  toggleTheme: () => void;
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [mode, setMode] = useState<'light' | 'dark'>('light');
+  
+  const theme = useMemo(() => createTheme({
+    palette: {
+      mode,
+      primary: { main: '#1976d2' },
+      secondary: { main: '#dc004e' },
+    },
+  }), [mode]);
+  
+  return (
+    <ThemeContext.Provider value={{ mode, toggleTheme }}>
+      <MuiThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </MuiThemeProvider>
+    </ThemeContext.Provider>
+  );
+}
+```
+
+**Features**:
+- Wraps entire application with MUI ThemeProvider
+- Provides light and dark theme variants
+- Persists theme preference to localStorage
+- Includes CssBaseline for consistent styling
+- Exposes toggleTheme function for theme switcher
+
 #### 1. Application Shell (`src/App.tsx`)
 
 ```typescript
 export function App() {
   return (
-    <PanelGroup direction="horizontal">
-      <Panel defaultSize={20} minSize={15} maxSize={30}>
-        <CircuitManagerPane />
-      </Panel>
-      
-      <PanelResizeHandle />
-      
-      <Panel defaultSize={50} minSize={30}>
-        <CircuitEditorPane />
-      </Panel>
-      
-      <PanelResizeHandle />
-      
-      <Panel defaultSize={30} minSize={20}>
-        <AnalysisPaneWrapper />
-      </Panel>
-    </PanelGroup>
+    <ThemeProvider>
+      <PanelGroup direction="horizontal">
+        <Panel defaultSize={20} minSize={15} maxSize={30}>
+          <CircuitManagerPane />
+        </Panel>
+        
+        <PanelResizeHandle />
+        
+        <Panel defaultSize={50} minSize={30}>
+          <CircuitEditorPane />
+        </Panel>
+        
+        <PanelResizeHandle />
+        
+        <Panel defaultSize={30} minSize={20}>
+          <AnalysisPaneWrapper />
+        </Panel>
+      </PanelGroup>
+    </ThemeProvider>
   );
 }
 ```
@@ -291,12 +337,24 @@ export function App() {
 - Delete circuits
 - Select active circuit
 - Rename circuits
+- Toggle theme (light/dark mode)
 
 **Key Features**:
 - Subscribes to `circuits` and `activeCircuitId` from Zustand store
 - Calls store actions for circuit management
 - Highlights the active circuit
 - Shows circuit metadata (creation date, last modified)
+
+**MUI Components Used**:
+- `Box` for layout container
+- `List`, `ListItem`, `ListItemButton`, `ListItemText` for circuit list
+- `Button` for "New Circuit" action
+- `IconButton` for delete and theme toggle
+- `TextField` for inline circuit name editing
+- `Tooltip` for helpful hints
+- `Divider` for visual separation
+- `Typography` for headers and labels
+- `DeleteIcon`, `Brightness4Icon`, `Brightness7Icon` from @mui/icons-material
 
 #### 3. Circuit Editor Pane (`src/components/CircuitEditor/CircuitEditorPane.tsx`)
 
@@ -356,20 +414,23 @@ const CircuitEditorPane = () => {
 **ResistorNode** (`src/components/CircuitEditor/nodes/ResistorNode.tsx`):
 - SVG representation of resistor symbol
 - Two handles (left and right terminals)
-- Inline editable resistance value
+- Inline editable resistance value using MUI `TextField`
 - Updates store on value change
+- MUI `Tooltip` for component information
 
 **VoltageSourceNode** (`src/components/CircuitEditor/nodes/VoltageSourceNode.tsx`):
 - SVG representation with polarity indicators
 - Two handles (top and bottom terminals)
-- Direction toggle button (rotates polarity)
-- Inline editable voltage value
+- Direction toggle using MUI `IconButton` (rotates polarity)
+- Inline editable voltage value using MUI `TextField`
+- MUI `Tooltip` for component information
 
 **CurrentSourceNode** (`src/components/CircuitEditor/nodes/CurrentSourceNode.tsx`):
 - SVG representation with arrow indicator
 - Two handles
-- Direction toggle
-- Inline editable current value
+- Direction toggle using MUI `IconButton`
+- Inline editable current value using MUI `TextField`
+- MUI `Tooltip` for component information
 
 #### 5. Analysis Pane Wrapper (`src/components/AnalysisPane/AnalysisPaneWrapper.tsx`)
 
@@ -1396,8 +1457,8 @@ This section maps each requirement from the requirements document to the corresp
 | Requirement | Design Components | Notes |
 |-------------|------------------|-------|
 | **Req 1: Circuit Visual Editor** | `CircuitEditorPane`, React Flow integration, custom nodes, `circuitStore` actions | Drag-and-drop, wire connections, component movement |
-| **Req 2: Component Library** | `ComponentPalette`, `ResistorNode`, `VoltageSourceNode`, `CurrentSourceNode` | Three component types with inline editing |
-| **Req 3: Multi-Circuit Management** | `CircuitManagerPane`, `circuitStore` (circuits record, activeCircuitId) | CRUD operations for circuits |
+| **Req 2: Component Library** | `ComponentPalette`, `ResistorNode`, `VoltageSourceNode`, `CurrentSourceNode` | Three component types with inline editing using MUI TextField |
+| **Req 3: Multi-Circuit Management** | `CircuitManagerPane`, `circuitStore` (circuits record, activeCircuitId) | CRUD operations for circuits using MUI List and Button components |
 | **Req 4: Circuit Validation** | `ValidationContext`, `validation.ts` utilities | Connectivity, source presence, loop/cut-set checks |
 | **Req 5: Nodal Analysis** | `CalculationContext`, `nodalAnalysis.ts`, incidence matrix construction | Cut-set method with A*YB*A^T formulation |
 | **Req 6: Loop Analysis** | `CalculationContext`, `loopAnalysis.ts`, tie-set matrix construction | Fundamental loops with B*ZB*B^T formulation |
@@ -1405,6 +1466,7 @@ This section maps each requirement from the requirements document to the corresp
 | **Req 8: Centralized State** | Zustand `circuitStore`, controlled React Flow | Single source of truth, no local React Flow state |
 | **Req 9: Three-Pane Layout** | `App.tsx`, react-resizable-panels, `PanelGroup` | Resizable panes with min/max constraints |
 | **Req 10: Pipeline Architecture** | Three nested contexts: `ValidationContext` → `CalculationContext` → `PresentationContext` | Validation auto-runs, calculation on-demand, presentation auto-runs |
+| **Req 11: Theme System** | `ThemeContext`, MUI ThemeProvider, theme toggle in `CircuitManagerPane` | Light/dark mode with localStorage persistence |
 
 ## Conclusion
 

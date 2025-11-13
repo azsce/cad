@@ -6,21 +6,23 @@
  */
 
 import { memo, useCallback, useState } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
+import { TextField, Tooltip, Box, IconButton } from '@mui/material';
+import { SwapVert as SwapVertIcon } from '@mui/icons-material';
 import { useCircuitStore } from '../../../store/circuitStore';
-import type { CircuitNode } from '../../../types/circuit';
+import type { CurrentSourceData } from '../../../types/circuit';
 
 /**
  * CurrentSourceNode component.
  * Displays a current source symbol with editable current value and direction control.
  */
-export const CurrentSourceNode = memo(({ id, data }: NodeProps<CircuitNode>) => {
+export const CurrentSourceNode = memo(({ id, data }: NodeProps<Node<CurrentSourceData>>) => {
   const updateNode = useCircuitStore((state) => state.updateNode);
   const activeCircuit = useCircuitStore((state) => state.getActiveCircuit());
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(data.value.toString());
 
-  const direction = data.direction ?? 'up';
+  const direction = data.direction;
 
   const handleValueChange = useCallback(
     (newValue: string) => {
@@ -130,32 +132,31 @@ export const CurrentSourceNode = memo(({ id, data }: NodeProps<CircuitNode>) => 
       </svg>
 
       {/* Direction toggle button */}
-      <button
-        onClick={handleDirectionToggle}
-        style={{
-          position: 'absolute',
-          top: -25,
-          right: -25,
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
-          border: '1px solid #ccc',
-          background: '#fff',
-          cursor: 'pointer',
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 0,
-        }}
-        title="Toggle direction"
-      >
-        ⇅
-      </button>
+      <Tooltip title="Toggle direction">
+        <IconButton
+          onClick={handleDirectionToggle}
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: -25,
+            right: -25,
+            width: 24,
+            height: 24,
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
+        >
+          <SwapVertIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
       {/* Editable current value */}
-      <div
-        style={{
+      <Box
+        sx={{
           position: 'absolute',
           bottom: -25,
           left: '50%',
@@ -166,41 +167,42 @@ export const CurrentSourceNode = memo(({ id, data }: NodeProps<CircuitNode>) => 
         }}
       >
         {isEditing ? (
-          <input
-            type="text"
+          <TextField
             value={editValue}
-            onChange={(e) => {
-              setEditValue(e.target.value);
-            }}
+            onChange={(e) => { setEditValue(e.target.value); }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             autoFocus
-            style={{
+            size="small"
+            sx={{
               width: 60,
-              padding: 2,
-              fontSize: 12,
-              textAlign: 'center',
-              border: '1px solid #4A90E2',
-              borderRadius: 3,
+              '& .MuiInputBase-input': {
+                fontSize: 12,
+                textAlign: 'center',
+                padding: '2px 4px',
+              },
             }}
           />
         ) : (
-          <span
-            onClick={() => {
-              setIsEditing(true);
-            }}
-            style={{
-              cursor: 'pointer',
-              padding: '2px 6px',
-              borderRadius: 3,
-              background: '#f0f0f0',
-            }}
-            title="Click to edit"
-          >
-            {data.value}A
-          </span>
+          <Tooltip title="Click to edit current">
+            <Box
+              component="span"
+              onClick={() => { setIsEditing(true); }}
+              sx={{
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: 1,
+                bgcolor: 'action.hover',
+                '&:hover': {
+                  bgcolor: 'action.selected',
+                },
+              }}
+            >
+              {data.value}A
+            </Box>
+          </Tooltip>
         )}
-      </div>
+      </Box>
 
       {/* Bottom terminal handle */}
       <Handle

@@ -1,11 +1,37 @@
 import { useState } from 'react';
+import {
+  Box,
+  Button,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  TextField,
+  Tooltip,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack,
+  Chip,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  Brightness4 as Brightness4Icon,
+  Brightness7 as Brightness7Icon,
+} from '@mui/icons-material';
 import { useCircuitStore } from '../../store/circuitStore';
-import './CircuitManagerPane.css';
+import { useTheme } from '../../contexts/ThemeContext';
 
 /**
  * Circuit Manager Pane Component
  * Displays list of all circuits with metadata and provides circuit management functionality.
- * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 11.3
  */
 export function CircuitManagerPane() {
   const circuits = useCircuitStore((state) => state.circuits);
@@ -14,6 +40,8 @@ export function CircuitManagerPane() {
   const deleteCircuit = useCircuitStore((state) => state.deleteCircuit);
   const setActiveCircuit = useCircuitStore((state) => state.setActiveCircuit);
   const updateCircuitName = useCircuitStore((state) => state.updateCircuitName);
+
+  const { mode, toggleTheme } = useTheme();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -83,170 +111,219 @@ export function CircuitManagerPane() {
   };
 
   return (
-    <div className="circuit-manager-pane">
-      <div className="circuit-manager-header">
-        <h2>Circuit Manager</h2>
-        <button
-          className="btn-new-circuit"
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.default',
+        color: 'text.primary',
+      }}
+    >
+      <Box
+        sx={{
+          p: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" component="h2">
+            Circuit Manager
+          </Typography>
+          <Tooltip title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}>
+            <IconButton onClick={toggleTheme} size="small">
+              {mode === 'light' ? <Brightness4Icon /> : <Brightness7Icon />}
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={handleCreateCircuit}
-          title="Create new circuit"
+          fullWidth
         >
-          + New Circuit
-        </button>
-      </div>
+          New Circuit
+        </Button>
+      </Box>
 
-      <div className="circuit-list">
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
         {circuitList.length === 0 ? (
-          <div className="empty-state">
-            <p>No circuits yet</p>
-            <p className="empty-state-hint">
+          <Box
+            sx={{
+              p: 4,
+              textAlign: 'center',
+              color: 'text.secondary',
+            }}
+          >
+            <Typography variant="body1" gutterBottom>
+              No circuits yet
+            </Typography>
+            <Typography variant="body2" color="text.disabled">
               Click "New Circuit" to get started
-            </p>
-          </div>
+            </Typography>
+          </Box>
         ) : (
-          circuitList.map((circuit) => {
-            const isActive = circuit.id === activeCircuitId;
-            const isEditing = editingId === circuit.id;
-            const isDeleting = deleteConfirmId === circuit.id;
+          <List sx={{ p: 0 }}>
+            {circuitList.map((circuit) => {
+              const isActive = circuit.id === activeCircuitId;
+              const isEditing = editingId === circuit.id;
 
-            return (
-              <div
-                key={circuit.id}
-                className={`circuit-item ${isActive ? 'active' : ''}`}
-                onClick={() => {
-                  if (!isEditing) {
-                    handleSelectCircuit(circuit.id);
-                  }
-                }}
-              >
-                <div className="circuit-item-content">
-                  {isEditing ? (
-                    <div className="circuit-name-edit">
-                      <input
-                        type="text"
-                        value={editingName}
-                        onChange={(e) => {
-                          setEditingName(e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleSaveEdit();
-                          } else if (e.key === 'Escape') {
-                            handleCancelEdit();
-                          }
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        autoFocus
-                        className="circuit-name-input"
-                      />
-                      <div className="edit-actions">
-                        <button
-                          className="btn-save"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSaveEdit();
-                          }}
-                          title="Save"
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="btn-cancel"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCancelEdit();
-                          }}
-                          title="Cancel"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="circuit-name-row">
-                        <h3 className="circuit-name">{circuit.name}</h3>
-                        <div className="circuit-actions">
-                          <button
-                            className="btn-edit"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartEdit(circuit.id, circuit.name);
-                            }}
-                            title="Rename circuit"
-                          >
-                            ✎
-                          </button>
-                          <button
-                            className="btn-delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(circuit.id);
-                            }}
-                            title="Delete circuit"
-                          >
-                            🗑
-                          </button>
-                        </div>
-                      </div>
-                      <div className="circuit-metadata">
-                        <div className="metadata-item">
-                          <span className="metadata-label">Created:</span>
-                          <span className="metadata-value">
-                            {formatDate(circuit.createdAt)}
-                          </span>
-                        </div>
-                        <div className="metadata-item">
-                          <span className="metadata-label">Modified:</span>
-                          <span className="metadata-value">
-                            {formatDate(circuit.modifiedAt)} at{' '}
-                            {formatTime(circuit.modifiedAt)}
-                          </span>
-                        </div>
-                        <div className="metadata-item">
-                          <span className="metadata-label">Components:</span>
-                          <span className="metadata-value">
-                            {circuit.nodes.length}
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {isDeleting && (
-                  <div
-                    className="delete-confirmation"
-                    onClick={(e) => {
-                      e.stopPropagation();
+              return (
+                <ListItem
+                  key={circuit.id}
+                  disablePadding
+                  sx={{
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                  }}
+                >
+                  <ListItemButton
+                    selected={isActive}
+                    onClick={() => {
+                      if (!isEditing) {
+                        handleSelectCircuit(circuit.id);
+                      }
+                    }}
+                    sx={{
+                      flexDirection: 'column',
+                      alignItems: 'stretch',
+                      py: 1.5,
                     }}
                   >
-                    <p className="delete-message">
-                      Delete "{circuit.name}"?
-                    </p>
-                    <div className="delete-actions">
-                      <button
-                        className="btn-confirm-delete"
-                        onClick={handleConfirmDelete}
-                      >
-                        Delete
-                      </button>
-                      <button
-                        className="btn-cancel-delete"
-                        onClick={handleCancelDelete}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
+                    {isEditing ? (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <TextField
+                          value={editingName}
+                          onChange={(e) => { setEditingName(e.target.value); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveEdit();
+                            } else if (e.key === 'Escape') {
+                              handleCancelEdit();
+                            }
+                          }}
+                          onClick={(e) => { e.stopPropagation(); }}
+                          autoFocus
+                          size="small"
+                          fullWidth
+                        />
+                        <Tooltip title="Save">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSaveEdit();
+                            }}
+                          >
+                            <CheckIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Cancel">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelEdit();
+                            }}
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    ) : (
+                      <>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            mb: 1,
+                          }}
+                        >
+                          <Typography variant="subtitle1" fontWeight="medium">
+                            {circuit.name}
+                          </Typography>
+                          <Stack direction="row" spacing={0.5}>
+                            <Tooltip title="Rename circuit">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartEdit(circuit.id, circuit.name);
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete circuit">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClick(circuit.id);
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </Box>
+                        <Stack spacing={0.5}>
+                          <Typography variant="caption" color="text.secondary">
+                            Created: {formatDate(circuit.createdAt)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Modified: {formatDate(circuit.modifiedAt)} at{' '}
+                            {formatTime(circuit.modifiedAt)}
+                          </Typography>
+                          <Box>
+                            <Chip
+                              label={`${circuit.nodes.length.toString()} components`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Box>
+                        </Stack>
+                      </>
+                    )}
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+          </List>
         )}
-      </div>
-    </div>
+      </Box>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmId !== null}
+        onClose={handleCancelDelete}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete Circuit</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "
+            {deleteConfirmId !== null ? circuits[deleteConfirmId]?.name : ''}"?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

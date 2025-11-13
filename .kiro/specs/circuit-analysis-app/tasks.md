@@ -53,6 +53,7 @@
 
 
 
+
 - [x] 5.1 Create ResistorNode component
 
   - Implement `src/components/CircuitEditor/nodes/ResistorNode.tsx`
@@ -80,6 +81,40 @@
   - Add direction toggle button
   - Add inline editable current value input
   - _Requirements: 2.5, 2.6_
+
+- [x] 5.4 Migrate to Material-UI design system
+
+
+
+- [x] 5.4.1 Install MUI dependencies and create theme system
+
+
+  - Install @mui/material, @mui/icons-material, @emotion/react, @emotion/styled
+  - Create `src/contexts/ThemeContext.tsx` with light/dark theme support
+  - Implement theme toggle functionality with localStorage persistence
+  - Wrap App.tsx with ThemeProvider and CssBaseline
+  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+
+
+- [x] 5.4.2 Migrate CircuitManagerPane to MUI components
+
+  - Replace HTML elements with MUI Box, List, ListItem, ListItemButton, ListItemText
+  - Replace buttons with MUI Button and IconButton components
+  - Add theme toggle button with Brightness4Icon/Brightness7Icon
+  - Replace input with MUI TextField for circuit name editing
+  - Add MUI Tooltip, Divider, and Typography components
+  - Style with MUI sx prop and theme values
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 11.3_
+
+
+- [x] 5.4.3 Migrate custom circuit nodes to use MUI components
+
+  - Update ResistorNode to use MUI TextField and Tooltip
+  - Update VoltageSourceNode to use MUI TextField, IconButton, and Tooltip
+  - Update CurrentSourceNode to use MUI TextField, IconButton, and Tooltip
+  - Ensure MUI components work within React Flow nodes
+  - Style inputs to match circuit editor aesthetic
+  - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6, 11.3_
 
 - [ ] 6. Build Circuit Editor pane with React Flow
   - Create `src/components/CircuitEditor/CircuitEditorPane.tsx`

@@ -4,16 +4,43 @@
  */
 
 /**
- * Component-specific data for circuit elements.
+ * Data for a resistor component.
  */
-export interface ComponentData {
-  /** The value of the component (resistance in Ω, voltage in V, current in A) */
+export type ResistorData = {
+  /** Resistance value in Ohms */
   value: number;
-  /** Direction/polarity of the component */
-  direction?: 'up' | 'down' | 'left' | 'right';
-  /** Optional label for the component */
+  /** Optional label for the resistor */
   label?: string;
 }
+
+/**
+ * Data for a voltage source component.
+ */
+export type VoltageSourceData = {
+  /** Voltage value in Volts */
+  value: number;
+  /** Polarity direction */
+  direction: 'up' | 'down';
+  /** Optional label for the voltage source */
+  label?: string;
+} 
+
+/**
+ * Data for a current source component.
+ */
+export type CurrentSourceData = {
+  /** Current value in Amperes */
+  value: number;
+  /** Current direction */
+  direction: 'up' | 'down';
+  /** Optional label for the current source */
+  label?: string;
+} 
+
+/**
+ * Union type for all component data types.
+ */
+export type ComponentData = ResistorData | VoltageSourceData | CurrentSourceData;
 
 /**
  * A circuit component node (maps to React Flow node).

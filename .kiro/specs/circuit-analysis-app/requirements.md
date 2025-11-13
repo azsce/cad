@@ -127,6 +127,18 @@ The application features a three-pane interface: a circuit manager for organizin
 4. WHEN the window is resized THEN the system SHALL maintain the proportional layout of all panes
 5. WHEN the layout is adjusted THEN the system SHALL ensure all content remains accessible and properly rendered
 
+### Requirement 11: Theme System
+
+**User Story:** As a user, I want to switch between light and dark themes, so that I can work comfortably in different lighting conditions.
+
+#### Acceptance Criteria
+
+1. WHEN the application loads THEN the system SHALL apply a default theme (light or dark based on system preference)
+2. WHEN the user clicks the theme toggle THEN the system SHALL switch between light and dark themes
+3. WHEN the theme changes THEN the system SHALL update all UI components consistently
+4. WHEN the theme is changed THEN the system SHALL persist the user's preference
+5. WHEN using Material-UI components THEN the system SHALL apply the active theme to all MUI components
+
 ### Requirement 10: Analysis Pipeline Architecture
 
 **User Story:** As a developer, I want the analysis logic separated into distinct layers (validation, calculation, presentation), so that the system is modular, testable, and maintainable.
