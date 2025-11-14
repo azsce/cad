@@ -130,7 +130,13 @@
   - Implement custom WireEdge component for connections
   - _Requirements: 1.4, 8.4_
 
-- [ ] 7. Create component palette for drag-and-drop
+- [x] 7. Create component palette for drag-and-drop
+
+
+
+
+
+
   - Create `src/components/CircuitEditor/ComponentPalette.tsx`
   - Add draggable palette items for resistor, voltage source, current source
   - Implement drag start handlers that set component type data
@@ -138,7 +144,9 @@
   - Open configuration dialog on drop to set component ID and value
   - _Requirements: 1.1, 1.2, 2.1_
 
-- [ ] 8. Implement circuit editing interactions
+- [-] 8. Implement circuit editing interactions
+
+
   - Implement node connection creation (wire between terminals)
   - Implement node deletion with keyboard shortcut
   - Implement edge deletion with keyboard shortcut

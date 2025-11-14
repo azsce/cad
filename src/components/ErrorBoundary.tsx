@@ -38,6 +38,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleWindowError = (event: ErrorEvent) => {
+    // Ignore ResizeObserver errors (known React Flow issue, harmless)
+    if (event.message?.includes('ResizeObserver')) {
+      return;
+    }
+    
     console.error('Uncaught error:', event.error);
     this.setState({
       hasError: true,
@@ -75,7 +80,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </Typography>
-          <Button variant="contained" onClick={() => window.location.reload()}>
+          <Button variant="contained" onClick={() => { window.location.reload(); }}>
             Reload Application
           </Button>
         </Box>
