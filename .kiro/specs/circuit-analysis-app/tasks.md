@@ -116,7 +116,12 @@
   - Style inputs to match circuit editor aesthetic
   - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6, 11.3_
 
-- [ ] 6. Build Circuit Editor pane with React Flow
+- [x] 6. Build Circuit Editor pane with React Flow
+
+
+
+
+
   - Create `src/components/CircuitEditor/CircuitEditorPane.tsx`
   - Integrate React Flow as controlled component (nodes/edges from store)
   - Implement onNodesChange handler that syncs to store
