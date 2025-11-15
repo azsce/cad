@@ -445,6 +445,82 @@ describe('useNodeOperations', () => {
 
 **Result**: All files under 100 lines, CC < 10, no bumpy roads, highly testable
 
+## Documentation Standards
+
+### Emojis in Comments
+
+**Guideline**: Use emojis in JSDoc comments to enhance readability and provide visual cues about function purpose.
+
+**Benefits**:
+- Improved code scanning and navigation
+- Visual categorization of functions
+- Enhanced developer experience
+- Easier to identify function types at a glance
+
+**Usage Pattern**:
+
+```typescript
+/**
+ * ✅ Main validation function - use checkmark for validation/verification
+ * 
+ * Performs the following checks:
+ * 1. 🔗 Graph connectivity - use link for connectivity
+ * 2. 🔋 Power sources - use battery for electrical sources
+ * 3. ⚠️ Error detection - use warning for error/contradiction detection
+ */
+export function validateGraph(graph: AnalysisGraph): ValidationResult {
+  // Implementation
+}
+
+/**
+ * 🔍 Search/traversal function - use magnifying glass for search operations
+ */
+function performBFS(startNodeId: string): Set<string> {
+  // Implementation
+}
+
+/**
+ * 🗺️ Data structure builder - use map for building graphs/structures
+ */
+function buildAdjacencyList(graph: AnalysisGraph): Map<string, string[]> {
+  // Implementation
+}
+
+/**
+ * 🌳 Tree operations - use tree emoji for spanning tree operations
+ */
+function getSelectedTree(graph: AnalysisGraph): SpanningTree | undefined {
+  // Implementation
+}
+```
+
+**Recommended Emoji Categories**:
+
+| Category | Emoji | Usage |
+|----------|-------|-------|
+| Validation | ✅ | Validation, verification, checking functions |
+| Connectivity | 🔗 | Graph connectivity, linking operations |
+| Power/Electrical | 🔋 ⚡ | Electrical sources, circuit operations |
+| Warnings/Errors | ⚠️ | Error detection, contradiction checking |
+| Search | 🔍 | BFS, DFS, search algorithms |
+| Data Structures | 🗺️ | Building graphs, maps, adjacency lists |
+| Trees | 🌳 🌿 | Spanning trees, tree operations, twigs |
+| Loops | 🔄 | Loop detection, circular operations |
+| Cut-sets | ✂️ | Cut-set operations, partitioning |
+| Paths | 🛤️ | Path finding, routing |
+| Components | 🧩 | Component detection, grouping |
+| Isolated | 🏝️ | Isolated nodes, disconnected parts |
+| Generic/Core | 🚀 | Generic algorithms, core utilities |
+| Building | 🏗️ | Initialization, construction |
+| Bidirectional | ↔️ | Bidirectional operations |
+
+**Rules**:
+- Use one emoji per function comment (at the start of the first line)
+- Choose emojis that clearly represent the function's purpose
+- Be consistent across similar functions
+- Don't overuse - only for function-level JSDoc comments
+- Inline comments should remain emoji-free for clarity
+
 ## Summary
 
 - **Use branded types** for IDs and domain concepts
@@ -457,3 +533,4 @@ describe('useNodeOperations', () => {
 - **Compose functionality** from focused, single-responsibility pieces
 - **Never use nested ternaries** - extract into if/else or functions
 - **Consolidate duplicate patterns** into generic helpers
+- **Use emojis in JSDoc comments** to enhance readability and navigation

@@ -31,11 +31,35 @@
 
 ## Code Quality Checks
 
-- After making any code modifications, ALWAYS run `~/.bun/bin/bun lint` to check for linting issues
-- After making any code modifications, ALWAYS run `~/.bun/bin/bun tsgo` to check for TypeScript compilation errors
-- Fix any linting or TypeScript errors before considering the task complete
-- If linting or TypeScript errors are found, address them immediately and re-run the checks
+**IMPORTANT: Check in this exact order:**
+
+1. **CodeScene Diagnostics (FIRST)** - After making any code modifications, ALWAYS check CodeScene diagnostics FIRST using `getDiagnostics` tool
+   - Check for: Code Duplication, Bumpy Road Ahead, Complex Method, Large Method, Primitive Obsession
+   - Fix ALL CodeScene warnings before proceeding to linting
+   - Refactor code to eliminate all warnings (see code-quality.md steering for patterns)
+   - Re-check diagnostics after refactoring to ensure all issues are resolved
+
+2. **TypeScript Compilation (SECOND)** - After CodeScene diagnostics are clean, run `~/.bun/bin/bun tsgo` to check for TypeScript compilation errors
+   - Fix any type errors
+   - Ensure strict type checking passes
+
+3. **Linting (THIRD)** - After TypeScript compilation passes, run `~/.bun/bin/bun lint` to check for linting issues
+   - Fix any ESLint errors
+   - Address any code style violations
+
+**Workflow:**
+```
+Code Changes → CodeScene Diagnostics → TypeScript Check → Linting → Task Complete
+     ↓              ↓ (if warnings)         ↓ (if errors)    ↓ (if errors)
+  Refactor ←────────┘                       │                │
+  Fix Types ←───────────────────────────────┘                │
+  Fix Style ←────────────────────────────────────────────────┘
+```
+
+- Fix any issues found at each step before moving to the next step
+- If CodeScene diagnostics show warnings, address them immediately and re-check
 - These checks should be run automatically after any file modifications or code changes
+- NEVER skip CodeScene diagnostics - they catch architectural issues that linting misses
 
 ## Code Style Rules
 
