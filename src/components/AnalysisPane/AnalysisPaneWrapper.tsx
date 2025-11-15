@@ -1,3 +1,12 @@
+/**
+ * 🎯 Analysis Pane Wrapper Component
+ * 
+ * Wraps the Analysis Pane with three nested context providers:
+ * ValidationProvider → CalculationProvider → PresentationProvider
+ * 
+ * Shows an empty state when no circuit is selected.
+ */
+
 import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import { useMemo } from 'react';
 import {
@@ -5,14 +14,94 @@ import {
   FullscreenExit as FullscreenExitIcon,
   ChevronRight as ChevronRightIcon,
   ChevronLeft as ChevronLeftIcon,
+  AccountTree as AccountTreeIcon,
 } from '@mui/icons-material';
 import { useUIStore } from '../../store/uiStore';
+import { useCircuitStore } from '../../store/circuitStore';
+import { ValidationProvider, useValidation } from '../../contexts/ValidationContext';
+import { CalculationProvider, useCalculation } from '../../contexts/CalculationContext';
+import { PresentationProvider } from '../../contexts/PresentationContext';
+import { AnalysisPane } from './AnalysisPane';
+import type { AnalysisGraph } from '../../types/analysis';
 
+/**
+ * 🔗 Content component that consumes ValidationContext and passes props to CalculationProvider
+ */
+function AnalysisPaneContent({ circuitName }: { readonly circuitName: string }) {
+  const { analysisGraph, validation } = useValidation();
+
+  return (
+    <CalculationProvider
+      analysisGraph={analysisGraph}
+      isSolvable={validation.isSolvable}
+    >
+      <PresentationWrapper circuitName={circuitName} analysisGraph={analysisGraph} />
+    </CalculationProvider>
+  );
+}
+
+/**
+ * 🔗 Wrapper component that consumes CalculationContext and passes props to PresentationProvider
+ */
+function PresentationWrapper({ 
+  circuitName, 
+  analysisGraph 
+}: { 
+  readonly circuitName: string;
+  readonly analysisGraph: AnalysisGraph | null;
+}) {
+  const { result } = useCalculation();
+
+  return (
+    <PresentationProvider
+      result={result}
+      analysisGraph={analysisGraph}
+      circuitName={circuitName}
+    >
+      <AnalysisPane />
+    </PresentationProvider>
+  );
+}
+
+/**
+ * 📭 Empty state component shown when no circuit is selected
+ */
+function EmptyState() {
+  const emptyStateStyle = useMemo(
+    () => ({
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      gap: 2,
+      color: 'text.secondary',
+    }),
+    []
+  );
+
+  return (
+    <Box sx={emptyStateStyle}>
+      <AccountTreeIcon sx={{ fontSize: 64, opacity: 0.3 }} />
+      <Typography variant="h6" color="text.secondary">
+        No Circuit Selected
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        Select or create a circuit to begin analysis
+      </Typography>
+    </Box>
+  );
+}
+
+/**
+ * 🎯 Main wrapper component for the Analysis Pane
+ */
 export function AnalysisPaneWrapper() {
   const isExpanded = useUIStore((state) => state.isRightPanelExpanded);
   const isCollapsed = useUIStore((state) => state.isRightPanelCollapsed);
   const toggleExpand = useUIStore((state) => state.toggleRightPanelExpand);
   const toggleCollapse = useUIStore((state) => state.toggleRightPanelCollapse);
+  const activeCircuit = useCircuitStore((state) => state.getActiveCircuit());
 
   const containerStyle = useMemo(
     () => ({
@@ -40,8 +129,7 @@ export function AnalysisPaneWrapper() {
   const contentStyle = useMemo(
     () => ({
       flex: 1,
-      p: 2,
-      overflow: 'auto',
+      overflow: 'hidden',
     }),
     []
   );
@@ -75,7 +163,7 @@ export function AnalysisPaneWrapper() {
     <Box sx={containerStyle}>
       <Box sx={headerStyle}>
         <Typography variant="h6" component="h2">
-          Analysis Pane
+          Analysis
         </Typography>
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <Tooltip title={isExpanded ? 'Exit fullscreen' : 'Expand to fullscreen'}>
@@ -91,7 +179,13 @@ export function AnalysisPaneWrapper() {
         </Box>
       </Box>
       <Box sx={contentStyle}>
-        <p>Circuit analysis results will appear here</p>
+        {!activeCircuit ? (
+          <EmptyState />
+        ) : (
+          <ValidationProvider circuit={activeCircuit}>
+            <AnalysisPaneContent circuitName={activeCircuit.name} />
+          </ValidationProvider>
+        )}
       </Box>
     </Box>
   );
