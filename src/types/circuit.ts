@@ -3,6 +3,9 @@
  * These types represent the UI-level circuit model used by React Flow.
  */
 
+import type { CircuitId, NodeId, EdgeId } from './identifiers';
+import { type Node } from '@xyflow/react';
+
 /**
  * Data for a resistor component.
  */
@@ -11,6 +14,8 @@ export type ResistorData = {
   value: number;
   /** Optional label for the resistor */
   label?: string;
+  /** Rotation angle in degrees (0, 90, 180, or 270) */
+  rotation?: 0 | 90 | 180 | 270;
 }
 
 /**
@@ -23,6 +28,8 @@ export type VoltageSourceData = {
   direction: 'up' | 'down';
   /** Optional label for the voltage source */
   label?: string;
+  /** Rotation angle in degrees (0, 90, 180, or 270) */
+  rotation?: 0 | 90 | 180 | 270;
 } 
 
 /**
@@ -35,6 +42,8 @@ export type CurrentSourceData = {
   direction: 'up' | 'down';
   /** Optional label for the current source */
   label?: string;
+  /** Rotation angle in degrees (0, 90, 180, or 270) */
+  rotation?: 0 | 90 | 180 | 270;
 } 
 
 /**
@@ -43,12 +52,32 @@ export type CurrentSourceData = {
 export type ComponentData = ResistorData | VoltageSourceData | CurrentSourceData;
 
 /**
+ * Position coordinate in the flow canvas.
+ */
+export interface Position {
+  /** X coordinate */
+  x: number;
+  /** Y coordinate */
+  y: number;
+}
+
+/**
+ * Waypoint with metadata about how it was created.
+ */
+export interface Waypoint extends Position {
+  /** Whether this waypoint was automatically created (true) or manually added by user (false) */
+  auto?: boolean;
+  /** Direction of the segment leading TO this waypoint ('horizontal' = came from horizontal movement, 'vertical' = came from vertical movement) */
+  direction?: 'horizontal' | 'vertical';
+}
+
+/**
  * A circuit component node (maps to React Flow node).
  * Represents a single electrical component in the circuit.
  */
-export interface CircuitNode {
+export interface CircuitNode extends Node {
   /** Unique identifier for the node */
-  id: string;
+  id: NodeId;
   /** Type of circuit component */
   type: 'resistor' | 'voltageSource' | 'currentSource' | 'ground';
   /** Position on the canvas */
@@ -63,15 +92,17 @@ export interface CircuitNode {
  */
 export interface CircuitEdge {
   /** Unique identifier for the edge */
-  id: string;
+  id: EdgeId;
   /** Source node ID */
-  source: string;
+  source: NodeId;
   /** Source handle ID (terminal) */
   sourceHandle: string;
   /** Target node ID */
-  target: string;
+  target: NodeId;
   /** Target handle ID (terminal) */
   targetHandle: string;
+  /** Optional intermediate waypoints defining the edge path */
+  waypoints?: Waypoint[];
 }
 
 /**
@@ -80,7 +111,7 @@ export interface CircuitEdge {
  */
 export interface Circuit {
   /** Unique identifier for the circuit */
-  id: string;
+  id: CircuitId;
   /** User-defined name for the circuit */
   name: string;
   /** All component nodes in the circuit */

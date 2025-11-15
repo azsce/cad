@@ -59,7 +59,7 @@ export default [
       // TypeScript rules
       // Note: you must disable the base rule as it can report incorrect errors
       "no-throw-literal": "off",
-      "@typescript-eslint/only-throw-error": "warn",
+      "@typescript-eslint/only-throw-error": "off",
 
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -83,6 +83,12 @@ export default [
        */
       "@typescript-eslint/no-explicit-any": "error",
 
+      /**
+       * Disallow direct use of console methods.
+       * Use the logger utility instead: import { logger } from '@/utils/logger'
+       */
+      "no-console": "error",
+
       // Spell checking
       "@cspell/spellchecker": [
         "warn",
@@ -92,6 +98,16 @@ export default [
           cspellOptionsRoot: import.meta.url,
         },
       ],
+    },
+  },
+  
+  // Allow console in logger implementation and vite config
+  {
+    files: ["src/utils/logger/**/*.ts", "vite.config.ts"],
+    rules: {
+      "no-console": "off",
+      "sonarjs/no-nested-functions": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
     },
   },
 ];

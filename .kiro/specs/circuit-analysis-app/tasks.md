@@ -144,7 +144,12 @@
   - Open configuration dialog on drop to set component ID and value
   - _Requirements: 1.1, 1.2, 2.1_
 
-- [-] 8. Implement circuit editing interactions
+- [x] 8. Implement circuit editing interactions
+
+
+
+
+
 
 
   - Implement node connection creation (wire between terminals)
@@ -154,7 +159,13 @@
   - Add isValidConnection check to prevent invalid connections
   - _Requirements: 1.3, 1.5_
 
-- [ ] 9. Implement graph transformation utilities
+- [x] 9. Implement graph transformation utilities
+
+
+
+
+
+
   - Create `src/analysis/utils/graphTransformer.ts`
   - Implement createAnalysisGraph() to convert Circuit to AnalysisGraph
   - Identify unique electrical nodes from edge connections

@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { Box, Typography, Button } from '@mui/material';
+import { logger } from '../utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -21,7 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: unknown) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    logger.error({ caller: 'ErrorBoundary' }, 'Error caught by boundary', { error, errorInfo });
   }
 
   componentDidMount() {
@@ -37,56 +38,60 @@ export class ErrorBoundary extends Component<Props, State> {
     window.removeEventListener('unhandledrejection', this.handlePromiseRejection);
   }
 
-  handleWindowError = (event: ErrorEvent) => {
+  handleWindowError = (event: ErrorEvent): void => {
     // Ignore ResizeObserver errors (known React Flow issue, harmless)
-    if (event.message?.includes('ResizeObserver')) {
+    if (event.message.includes('ResizeObserver')) {
       return;
     }
     
-    console.error('Uncaught error:', event.error);
+    const errorValue: unknown = event.error;
+    logger.error({ caller: 'ErrorBoundary' }, 'Uncaught error', { error: errorValue });
+    const errorObj = errorValue instanceof Error ? errorValue : new Error(event.message);
     this.setState({
       hasError: true,
-      error: event.error || new Error(event.message),
+      error: errorObj,
     });
     event.preventDefault();
   };
 
-  handlePromiseRejection = (event: PromiseRejectionEvent) => {
-    console.error('Unhandled promise rejection:', event.reason);
+  handlePromiseRejection = (event: PromiseRejectionEvent): void => {
+    const reasonValue: unknown = event.reason;
+    logger.error({ caller: 'ErrorBoundary' }, 'Unhandled promise rejection', { reason: reasonValue });
     this.setState({
       hasError: true,
-      error: event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
+      error: reasonValue instanceof Error ? reasonValue : new Error(String(reasonValue)),
     });
     event.preventDefault();
   };
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh',
-            p: 4,
-            textAlign: 'center',
-          }}
-        >
-          <Typography variant="h4" gutterBottom>
-            Something went wrong
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            {this.state.error?.message || 'An unexpected error occurred'}
-          </Typography>
-          <Button variant="contained" onClick={() => { window.location.reload(); }}>
-            Reload Application
-          </Button>
-        </Box>
-      );
-    }
+    const { hasError, error } = this.state;
+    const { children } = this.props;
 
-    return this.props.children;
+    return hasError ? (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          p: 4,
+          textAlign: 'center',
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Something went wrong
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          {error?.message || 'An unexpected error occurred'}
+        </Typography>
+        <Button variant="contained" onClick={() => { window.location.reload(); }}>
+          Reload Application
+        </Button>
+      </Box>
+    ) : (
+      <>{children}</>
+    );
   }
 }
