@@ -32,12 +32,14 @@ export const useComponentConfig = (
         return;
       }
 
-      const newNode: CircuitNode = {
+      // Type assertion is safe here because pendingComponent.type is validated
+      // and data comes from the config dialog which ensures correct type
+      const newNode = {
         id: createNodeId(id),
         type: pendingComponent.type,
         position: pendingComponent.position,
         data,
-      };
+      } as CircuitNode;
 
       logger.debug({ caller: 'useComponentConfig' }, 'Adding node via context', { newNode });
       addNodeToFlow(newNode);

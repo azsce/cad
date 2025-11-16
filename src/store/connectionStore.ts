@@ -112,6 +112,11 @@ interface ConnectionState {
   cursorPosition: Position | null;
   /** Last movement direction (for detecting turns) */
   lastDirection: 'horizontal' | 'vertical' | null;
+  /** Temporary junction created when clicking edge during connection */
+  temporaryJunction: {
+    position: Position;
+    edgeId: string;
+  } | null;
 
   // Actions
   /** Initiate connection drawing mode */
@@ -123,9 +128,13 @@ interface ConnectionState {
   /** Clean and optimize waypoints by removing redundant points */
   cleanWaypoints: (waypoints: Waypoint[]) => Waypoint[];
   /** End connection and return captured waypoints (state handoff) */
-  endConnecting: () => { waypoints: Waypoint[] } | null;
+  endConnecting: () => { waypoints: Waypoint[]; temporaryJunction: { position: Position; edgeId: string } | null } | null;
   /** Cancel connection without creating an edge */
   cancelConnecting: () => void;
+  /** Create a temporary junction at the specified position on an edge */
+  createTemporaryJunction: (position: Position, edgeId: string) => void;
+  /** Clear temporary junction */
+  clearTemporaryJunction: () => void;
 }
 
 /**
@@ -142,6 +151,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   waypoints: [],
   cursorPosition: null,
   lastDirection: null,
+  temporaryJunction: null,
 
   /**
    * Start connection drawing mode
@@ -291,16 +301,19 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
    * Called by onConnect (success) handler
    * This is the "state handoff" point where temporary waypoints become persistent edge data
    * 
-   * @returns Object with waypoints array if connection was active, null otherwise
+   * @returns Object with waypoints array and temporary junction if connection was active, null otherwise
    */
   endConnecting: () => {
-    const { isConnecting, waypoints, cleanWaypoints } = get();
+    const { isConnecting, waypoints, cleanWaypoints, temporaryJunction } = get();
 
     // If no connection is active, do nothing (idempotent)
     if (!isConnecting) return null;
 
     // Clean and optimize waypoints before capturing
     const cleanedWaypoints = cleanWaypoints(waypoints);
+
+    // Capture temporary junction before clearing
+    const capturedTempJunction = temporaryJunction;
 
     // Reset the store to its initial state
     set({
@@ -311,10 +324,14 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       waypoints: [],
       cursorPosition: null,
       lastDirection: null,
+      temporaryJunction: null,
     });
 
-    // Return the cleaned waypoints for handoff to edge creation
-    return { waypoints: cleanedWaypoints };
+    // Return the cleaned waypoints and temporary junction for handoff to edge creation
+    return { 
+      waypoints: cleanedWaypoints,
+      temporaryJunction: capturedTempJunction,
+    };
   },
 
   /**
@@ -335,6 +352,34 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
       waypoints: [],
       cursorPosition: null,
       lastDirection: null,
+      temporaryJunction: null,
+    });
+  },
+
+  /**
+   * Create a temporary junction at the specified position on an edge.
+   * Called when user clicks an edge during connection mode.
+   */
+  createTemporaryJunction: (position, edgeId) => {
+    logger.debug({ caller: 'connectionStore' }, 'Creating temporary junction', {
+      position,
+      edgeId,
+    });
+
+    set({
+      temporaryJunction: {
+        position,
+        edgeId,
+      },
+    });
+  },
+
+  /**
+   * Clear temporary junction (on cancel or completion).
+   */
+  clearTemporaryJunction: () => {
+    set({
+      temporaryJunction: null,
     });
   },
 }));

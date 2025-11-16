@@ -140,7 +140,7 @@ export function AnalysisControls() {
         <Tab label="Graph" value="graph" />
         <Tab label="Tree" value="tree" />
         <Tab label="Loops" value="loops" />
-        <Tab label="Cut-Sets" value="cutlets" />
+        <Tab label="Cut-Sets" value="cutsets" />
         <Tab label="Results" value="results" />
       </Tabs>
     </Box>

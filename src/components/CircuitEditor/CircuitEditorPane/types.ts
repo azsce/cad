@@ -14,6 +14,7 @@ export interface ReactFlowCanvasProps {
   onConnect: OnConnect;
   onPaneClick: (event: React.MouseEvent) => void;
   onPaneMouseMove: (event: React.MouseEvent) => void;
+  onEdgeClick: (event: React.MouseEvent, edge: Edge) => void;
   onDragOver: (event: React.DragEvent) => void;
   onDrop: (event: React.DragEvent) => void;
   isValidConnection: (connection: Edge | Connection) => boolean;

@@ -5,7 +5,7 @@
  * and an inline editable voltage value input.
  */
 
-import { memo, useState } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import type { NodeProps, Node } from '@xyflow/react';
 import { logger } from '../../../../utils/logger';
 import type { VoltageSourceData } from '../../../../types/circuit';
@@ -24,9 +24,17 @@ import { useVoltageDimensions } from './useVoltageDimensions';
  * Displays a voltage source symbol with editable voltage value and polarity control.
  */
 export const VoltageSourceNode = memo(({ id, data, selected }: NodeProps<Node<VoltageSourceData>>) => {
-  logger.debug({ caller: 'VoltageSourceNode' }, 'Rendering node', { id, data });
-
   const [isHovered, setIsHovered] = useState(false);
+  const lastLogTimeRef = useRef<number>(0);
+
+  // Throttled logging effect - runs every 3 seconds
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastLogTimeRef.current < 3000) return;
+
+    logger.debug({ caller: 'VoltageSourceNode' }, 'Rendering node', { id, data });
+    lastLogTimeRef.current = now;
+  }, [id, data]);
   const rotation = data.rotation ?? 0;
 
   const { handleRotateClockwise, handleRotateCounterClockwise } = useVoltageRotation({

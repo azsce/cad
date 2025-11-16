@@ -12,6 +12,7 @@ import { useState, useCallback, type ReactNode } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useApplyNodeChanges } from '../../hooks/useApplyNodeChanges';
 import type { CircuitId } from '../../types/identifiers';
+import type { CircuitEdge } from '../../types/circuit';
 import { CircuitFlowContext, type CircuitFlowContextValue } from '../../hooks/useCircuitFlow';
 import { useCircuitSync } from './useCircuitSync';
 import { useKeyboardHandler } from './useKeyboardHandler';
@@ -20,6 +21,7 @@ import { useEdgeOperations } from './useEdgeOperations';
 import { useConnectionHandlers } from './useConnectionHandlers';
 import { useFlowChangeHandlers } from './useFlowChangeHandlers';
 import { useAutoFitView } from './useAutoFitView';
+import { useEdgeClickHandler } from './useEdgeClickHandler';
 
 interface CircuitFlowProviderProps {
   readonly circuitId: CircuitId;
@@ -27,7 +29,7 @@ interface CircuitFlowProviderProps {
 }
 
 export function CircuitFlowProvider({ circuitId, children }: CircuitFlowProviderProps) {
-  const { screenToFlowPosition } = useReactFlow();
+  const reactFlowInstance = useReactFlow();
   
   // Helper lines state for node alignment
   const [helperLines, setHelperLines] = useState<{ horizontal?: number | undefined; vertical?: number| undefined }>({});
@@ -54,16 +56,35 @@ export function CircuitFlowProvider({ circuitId, children }: CircuitFlowProvider
   // Handle keyboard events (Escape to cancel connection)
   useKeyboardHandler();
 
-  // Node CRUD operations
-  const { addNode, deleteNodes, updateNodeData } = useNodeOperations({ circuitId, setNodes });
-
-  // Edge CRUD operations
+  // Edge CRUD operations (must come before node operations)
   const { addEdge, deleteEdges, updateEdge } = useEdgeOperations({ circuitId, setEdges });
+
+  // Node CRUD operations
+  const { addNode, deleteNodes, updateNodeData } = useNodeOperations({ 
+    circuitId, 
+    setNodes, 
+    edges, 
+    addEdge, 
+    deleteEdges 
+  });
 
   // Connection handlers
   const { onPaneClick, onPaneMouseMove, startConnection, onConnect } = useConnectionHandlers({
-    screenToFlowPosition,
+    screenToFlowPosition: reactFlowInstance.screenToFlowPosition,
     addEdge,
+    addNode,
+    deleteEdges,
+    edges: edges as CircuitEdge[],
+    nodes,
+  });
+
+  // Edge click handler
+  const { onEdgeClick } = useEdgeClickHandler({
+    screenToFlowPosition: reactFlowInstance.screenToFlowPosition,
+    addNode,
+    addEdge,
+    deleteEdges,
+    edges: edges as CircuitEdge[],
   });
 
   // Flow change handlers
@@ -83,6 +104,7 @@ export function CircuitFlowProvider({ circuitId, children }: CircuitFlowProvider
     onConnect,
     onPaneClick,
     onPaneMouseMove,
+    onEdgeClick,
     startConnection,
     addNode,
     addEdge,

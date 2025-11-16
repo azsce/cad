@@ -6,6 +6,7 @@ import type { NodeTypes, EdgeTypes } from '@xyflow/react';
 import { ResistorNode } from '../nodes/ResistorNode';
 import { VoltageSourceNode } from '../nodes/VoltageSourceNode';
 import { CurrentSourceNode } from '../nodes/CurrentSourceNode';
+import { JunctionNode } from '../nodes/JunctionNode';
 import { WireEdge } from '../edges';
 
 /**
@@ -18,6 +19,7 @@ export const nodeTypes: NodeTypes = {
   voltageSource: VoltageSourceNode,
   currentSource: CurrentSourceNode,
   ground: () => null, // Placeholder for ground node type
+  junction: JunctionNode,
 } as const;
 
 /**

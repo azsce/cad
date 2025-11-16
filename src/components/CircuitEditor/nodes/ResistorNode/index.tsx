@@ -4,7 +4,7 @@
  * and an inline editable resistance value input.
  */
 
-import { memo, useState } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import type { NodeProps, Node } from '@xyflow/react';
 import { logger } from '../../../../utils/logger';
 import { RotationButton } from '../RotationButton';
@@ -22,9 +22,17 @@ import { useResistorDimensions } from './useResistorDimensions';
  * Displays a resistor symbol with editable resistance value.
  */
 export const ResistorNode = memo(({ id, data, selected }: NodeProps<Node<ResistorData>>) => {
-  logger.debug({ caller: 'ResistorNode' }, 'Rendering node', { id, data });
-
   const [isHovered, setIsHovered] = useState(false);
+  const lastLogTimeRef = useRef<number>(0);
+
+  // Throttled logging effect - runs every 3 seconds
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastLogTimeRef.current < 3000) return;
+
+    logger.debug({ caller: 'ResistorNode' }, 'Rendering node', { id, data });
+    lastLogTimeRef.current = now;
+  }, [id, data]);
   const rotation = data.rotation ?? 0;
 
   const { handleRotateClockwise, handleRotateCounterClockwise } = useResistorRotation({

@@ -14,16 +14,10 @@ const PENCIL_CURSOR_BASE64 = btoa(PENCIL_CURSOR_SVG);
 const PENCIL_CURSOR = `url("data:image/svg+xml;base64,${PENCIL_CURSOR_BASE64}") 2 22, crosshair`;
 
 /**
- * Generate React Flow canvas styles
+ * 🎨 Generate base styles for React Flow canvas
  */
-function generateReactFlowStyles(isConnecting: boolean, theme: Theme): SxProps<Theme> {
-  logger.debug({ caller: 'useReactFlowStyles' }, 'generateReactFlowStyles called', { 
-    isConnecting, 
-    cursor: isConnecting ? 'pencil' : 'default',
-    pencilCursorLength: PENCIL_CURSOR.length,
-  });
-  
-  const baseStyles: SxProps<Theme> = {
+function getBaseStyles(isConnecting: boolean, theme: Theme) {
+  return {
     flex: 1,
     height: '100%',
     '& .react-flow__pane': {
@@ -44,8 +38,13 @@ function generateReactFlowStyles(isConnecting: boolean, theme: Theme): SxProps<T
       transition: 'all 0.2s ease',
     },
   };
+}
 
-  const connectingStyles: SxProps<Theme> = {
+/**
+ * 🔗 Generate styles for connection mode
+ */
+function getConnectingStyles(theme: Theme) {
+  return {
     '& .react-flow__handle': {
       width: '12px !important',
       height: '12px !important',
@@ -69,7 +68,12 @@ function generateReactFlowStyles(isConnecting: boolean, theme: Theme): SxProps<T
     },
     '& .react-flow__edge': {
       opacity: 0.5,
-      pointerEvents: 'none',
+      pointerEvents: 'all', // ✅ Enable edge clicks during connection mode for wire-to-wire connections
+      cursor: 'pointer',
+      '&:hover': {
+        opacity: 0.8,
+        strokeWidth: '3px',
+      },
     },
     '& .react-flow__controls': {
       opacity: 0.5,
@@ -78,13 +82,25 @@ function generateReactFlowStyles(isConnecting: boolean, theme: Theme): SxProps<T
       opacity: 0.5,
     },
   };
+}
 
-  const result: SxProps<Theme> = {
+/**
+ * 🎨 Generate React Flow canvas styles
+ */
+function generateReactFlowStyles(isConnecting: boolean, theme: Theme): SxProps<Theme> {
+  logger.debug({ caller: 'useReactFlowStyles' }, 'generateReactFlowStyles called', { 
+    isConnecting, 
+    cursor: isConnecting ? 'pencil' : 'default',
+    pencilCursorLength: PENCIL_CURSOR.length,
+  });
+  
+  const baseStyles = getBaseStyles(isConnecting, theme);
+  const connectingStyles = isConnecting ? getConnectingStyles(theme) : {};
+
+  return {
     ...baseStyles,
-    ...(isConnecting ? connectingStyles : {}),
+    ...connectingStyles,
   };
-
-  return result;
 }
 
 export const useReactFlowStyles = (isConnecting: boolean): SxProps<Theme> => {

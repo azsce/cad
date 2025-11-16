@@ -301,8 +301,8 @@ ${equation}`);
  * 📊 Generates final results table.
  */
 function generateResultsTable(result: CalculationResult, graph: AnalysisGraph): string {
-  const branchVoltages = result.branchVoltages.toArray() as number[][];
-  const branchCurrents = result.branchCurrents.toArray() as number[][];
+  const branchVoltages = result.branchVoltages.valueOf() as number[][];
+  const branchCurrents = result.branchCurrents.valueOf() as number[][];
   
   const rows = graph.branches.map((branch, index) => {
     const label = getBranchLabel(graph, branch.id) ?? '?';

@@ -116,15 +116,19 @@ export const ConnectableHandle = memo(({ nodeId, handleId, ...handleProps }: Con
   const handleClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
     
-    logger.debug({ caller: 'ConnectableHandle' }, 'Handle clicked', {
+    logger.info({ caller: 'ConnectableHandle' }, '🖱️ HANDLE CLICKED', {
       nodeId,
       handleId,
       isConnecting,
+      clientX: event.clientX,
+      clientY: event.clientY,
     });
     
     if (isConnecting) {
+      logger.info({ caller: 'ConnectableHandle' }, '✅ Completing connection to this handle');
       handleCompleteConnection();
     } else {
+      logger.info({ caller: 'ConnectableHandle' }, '🚀 Starting connection from this handle');
       handleStartConnection(event);
     }
   }, [isConnecting, handleCompleteConnection, handleStartConnection, nodeId, handleId]);

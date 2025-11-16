@@ -13,29 +13,24 @@ import { useConnectionStore } from '../../store/connectionStore';
 export function useKeyboardHandler() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle Escape key when connecting
+      if (event.key !== 'Escape') return;
+      
       const { isConnecting } = useConnectionStore.getState();
+      if (!isConnecting) return;
       
-      logger.debug({ caller: 'useKeyboardHandler' }, 'Key pressed', { 
-        key: event.key, 
-        isConnecting 
-      });
-      
-      if (event.key === 'Escape' && isConnecting) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        logger.debug({ caller: 'useKeyboardHandler' }, 'Connection cancelled via Escape');
-        useConnectionStore.getState().cancelConnecting();
-      }
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      logger.debug({ caller: 'useKeyboardHandler' }, 'Connection cancelled via Escape');
+      useConnectionStore.getState().cancelConnecting();
     };
 
-    // Add listener to both window and document for maximum coverage
+    // Use window listener only to avoid duplicate events
     window.addEventListener('keydown', handleKeyDown, { capture: true });
-    document.addEventListener('keydown', handleKeyDown, { capture: true });
     
     return () => {
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
-      document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, []);
 }

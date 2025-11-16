@@ -3,6 +3,7 @@
  */
 
 import { memo } from 'react';
+import { logger } from '../../../../utils/logger';
 
 interface ConnectionPathProps {
   pathData: string;
@@ -19,6 +20,19 @@ export const ConnectionPath = memo(({ pathData, strokeWidth, dashArray }: Connec
       strokeWidth={strokeWidth}
       strokeDasharray={`${dashArray.toString()} ${dashArray.toString()}`}
       strokeLinecap="round"
+      onClick={(e) => {
+        logger.warn({ caller: 'ConnectionPath' }, '⚠️ CONNECTION PATH CLICKED (should not happen!)', {
+          clientX: e.clientX,
+          clientY: e.clientY,
+        });
+        e.stopPropagation();
+      }}
+      onMouseDown={(e) => {
+        logger.warn({ caller: 'ConnectionPath' }, '⚠️ CONNECTION PATH MOUSE DOWN (should not happen!)', {
+          clientX: e.clientX,
+          clientY: e.clientY,
+        });
+      }}
     />
   );
 });

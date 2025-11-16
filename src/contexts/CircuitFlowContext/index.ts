@@ -14,3 +14,4 @@ export * from './useConnectionStart';
 export * from './useConnectionComplete';
 export * from './useFlowChangeHandlers';
 export * from './useAutoFitView';
+export * from './useEdgeClickHandler';

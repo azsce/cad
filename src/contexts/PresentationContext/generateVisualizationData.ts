@@ -70,8 +70,8 @@ function extractBranchResults(
 ): Map<string, { current: number; voltage: number }> {
   const branchResults = new Map<string, { current: number; voltage: number }>();
 
-  const voltages = result.branchVoltages.toArray() as number[][];
-  const currents = result.branchCurrents.toArray() as number[][];
+  const voltages = result.branchVoltages.valueOf() as number[][];
+  const currents = result.branchCurrents.valueOf() as number[][];
 
   graph.branches.forEach((branch, index) => {
     const voltage = voltages[index]?.[0] ?? 0;
@@ -107,7 +107,7 @@ function extractLoopDefinitions(
     return [];
   }
 
-  const tieSetData = result.tieSetMatrix.toArray() as number[][];
+  const tieSetData = result.tieSetMatrix.valueOf() as number[][];
   const loopDefinitions: LoopDefinition[] = [];
 
   // Each row represents one fundamental loop
@@ -167,7 +167,7 @@ function extractCutSetDefinitions(
     return [];
   }
 
-  const incidenceData = result.incidenceMatrix.toArray() as number[][];
+  const incidenceData = result.incidenceMatrix.valueOf() as number[][];
   const cutSetDefinitions: CutSetDefinition[] = [];
 
   // Each row represents one fundamental cut-set (one per non-reference node)

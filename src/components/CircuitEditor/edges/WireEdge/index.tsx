@@ -6,9 +6,11 @@
 import { memo } from 'react';
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react';
 import { useTheme } from '@mui/material';
+import type { EdgeId } from '../../../../types/identifiers';
 import { useWireEdgePath } from './useWireEdgePath';
 import { useWireEdgeWaypoints } from './useWireEdgeWaypoints';
 import { useWireEdgeDelete } from './useWireEdgeDelete';
+import { useWireEdgeClick } from './useWireEdgeClick';
 import { WaypointHandles } from './WaypointHandles';
 import { DeleteButton } from './DeleteButton';
 
@@ -32,6 +34,7 @@ export const WireEdge = memo((props: EdgeProps) => {
 
   const { waypoints, waypointHandlers } = useWireEdgeWaypoints(id, data);
   const { handleDelete } = useWireEdgeDelete(id);
+  const { handleEdgeClick, edgeStyle, setIsHovered } = useWireEdgeClick(id as EdgeId, selected ?? false, theme);
 
   return (
     <>
@@ -40,10 +43,16 @@ export const WireEdge = memo((props: EdgeProps) => {
         path={path}
         style={{
           ...style,
-          strokeWidth: selected ? 3 : 2,
-          stroke: selected ? theme.palette.primary.main : theme.palette.text.primary,
+          ...edgeStyle,
         }}
         interactionWidth={20}
+        onClick={handleEdgeClick}
+        onMouseEnter={() => {
+          setIsHovered(true);
+        }}
+        onMouseLeave={() => {
+          setIsHovered(false);
+        }}
       />
 
       {selected && <WaypointHandles waypoints={waypoints} handlers={waypointHandlers} />}

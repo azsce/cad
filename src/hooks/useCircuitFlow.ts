@@ -16,6 +16,7 @@ export interface CircuitFlowContextValue {
   onConnect: (connection: Connection) => void;
   onPaneClick: (event: React.MouseEvent) => void;
   onPaneMouseMove: (event: React.MouseEvent) => void;
+  onEdgeClick: (event: React.MouseEvent, edge: Edge) => void;
   startConnection: (nodeId: NodeId, handleId: string, handlePosition: { x: number; y: number }) => void;
   addNode: (node: CircuitNode) => void;
   addEdge: (edge: CircuitEdge) => void;

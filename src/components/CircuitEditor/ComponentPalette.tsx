@@ -11,7 +11,7 @@ import { useTheme } from '@mui/material/styles';
 /**
  * Component type identifier for drag-and-drop.
  */
-type ComponentType = 'resistor' | 'voltageSource' | 'currentSource';
+type ComponentType = 'resistor' | 'voltageSource' | 'currentSource' | 'junction';
 
 /**
  * Palette item configuration.
@@ -44,6 +44,12 @@ const paletteItems: PaletteItem[] = [
     label: 'Current Source',
     icon: '⚡',
     description: 'Add a current source',
+  },
+  {
+    type: 'junction',
+    label: 'Junction',
+    icon: '⭕',
+    description: 'Add a junction connection point',
   },
 ];
 

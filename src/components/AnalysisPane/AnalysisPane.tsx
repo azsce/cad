@@ -8,148 +8,33 @@
  * Consumes ValidationContext, CalculationContext, and PresentationContext.
  */
 
-import { useMemo } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { useMemo, useCallback } from 'react';
+import { Box, Typography } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useValidation } from '../../contexts/ValidationContext';
 import { useCalculation } from '../../contexts/CalculationContext';
 import { usePresentation } from '../../contexts/PresentationContext';
 import { AnalysisControls } from './AnalysisControls';
+import { GraphVisualization as GraphVisualizationComponent } from './GraphVisualization';
+import { handleDefinitionClick } from './GraphVisualization/handleDefinitionClick';
+import { ResultsDisplay } from './ResultsDisplay';
+import { ErrorDisplay } from './ErrorDisplay';
+import { LoadingSpinner } from './LoadingSpinner';
+import { CalculationErrorDialog } from './CalculationErrorDialog';
 
-/**
- * 🔄 Loading spinner component shown during calculation
- */
-function LoadingSpinner() {
-  const loadingStyle = useMemo(
-    () => ({
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100%',
-      gap: 2,
-    }),
-    []
-  );
 
-  return (
-    <Box sx={loadingStyle}>
-      <CircularProgress size={48} />
-      <Typography variant="body1" color="text.secondary">
-        Analyzing circuit...
-      </Typography>
-    </Box>
-  );
-}
 
-/**
- * ⚠️ Error display component shown when validation fails
- */
-function ErrorDisplay() {
-  const { validation } = useValidation();
 
-  const errorStyle = useMemo(
-    () => ({
-      p: 3,
-      height: '100%',
-      overflow: 'auto',
-    }),
-    []
-  );
-
-  const errorBoxStyle = useMemo(
-    () => ({
-      p: 2,
-      mb: 2,
-      bgcolor: 'error.main',
-      color: 'error.contrastText',
-      borderRadius: 1,
-    }),
-    []
-  );
-
-  const warningBoxStyle = useMemo(
-    () => ({
-      p: 2,
-      mb: 2,
-      bgcolor: 'warning.main',
-      color: 'warning.contrastText',
-      borderRadius: 1,
-    }),
-    []
-  );
-
-  return (
-    <Box sx={errorStyle}>
-      {validation.errors.length > 0 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Validation Errors
-          </Typography>
-          {validation.errors.map((error, index) => (
-            <Box key={index} sx={errorBoxStyle}>
-              <Typography variant="body2">{error}</Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
-      {validation.warnings.length > 0 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Warnings
-          </Typography>
-          {validation.warnings.map((warning, index) => (
-            <Box key={index} sx={warningBoxStyle}>
-              <Typography variant="body2">{warning}</Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
-    </Box>
-  );
-}
-
-/**
- * 📈 Results display component (placeholder for now)
- */
-function ResultsDisplay() {
-  const { markdownOutput } = usePresentation();
-
-  const resultsStyle = useMemo(
-    () => ({
-      p: 3,
-      height: '100%',
-      overflow: 'auto',
-    }),
-    []
-  );
-
-  return (
-    <Box sx={resultsStyle}>
-      <Typography variant="h6" gutterBottom>
-        Analysis Results
-      </Typography>
-      {markdownOutput ? (
-        <Box>
-          <Typography variant="body2" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
-            {markdownOutput}
-          </Typography>
-        </Box>
-      ) : (
-        <Typography variant="body2" color="text.secondary">
-          Click "Run Analysis" to see results
-        </Typography>
-      )}
-    </Box>
-  );
-}
 
 
 
 /**
- * 🗺️ Graph visualization component (placeholder for now)
+ * 🗺️ Graph visualization component with interactive features
  */
 function GraphVisualization() {
+  const { analysisGraph } = useValidation();
+  const { visualizationData, setHighlightedElements } = usePresentation();
+
   const graphStyle = useMemo(
     () => ({
       flex: 1,
@@ -158,15 +43,40 @@ function GraphVisualization() {
       justifyContent: 'center',
       bgcolor: 'background.paper',
       color: 'text.secondary',
+      minHeight: 0,
     }),
     []
   );
 
+  /**
+   * 🔍 Handle element click - highlights loops/cut-sets or individual elements
+   */
+  const handleElementClick = useCallback(
+    (elementId: string) => {
+      const branchIds = handleDefinitionClick(elementId, visualizationData);
+      setHighlightedElements(branchIds);
+    },
+    [visualizationData, setHighlightedElements]
+  );
+
+  // Show placeholder if no graph available
+  if (!analysisGraph) {
+    return (
+      <Box sx={graphStyle}>
+        <Typography variant="body2">
+          No circuit graph available
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={graphStyle}>
-      <Typography variant="body2">
-        Graph visualization will appear here
-      </Typography>
+    <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+      <GraphVisualizationComponent
+        analysisGraph={analysisGraph}
+        visualizationData={visualizationData}
+        onElementClick={handleElementClick}
+      />
     </Box>
   );
 }
@@ -176,7 +86,15 @@ function GraphVisualization() {
  */
 export function AnalysisPane() {
   const { validation, isValidating } = useValidation();
-  const { isCalculating } = useCalculation();
+  const { isCalculating, error: calculationError } = useCalculation();
+
+  /**
+   * ❌ Close the error dialog
+   */
+  const handleCloseErrorDialog = useCallback(() => {
+    // Error dialog will close when calculationError becomes null
+    // This is handled by the CalculationContext
+  }, []);
 
   const topSectionStyle = useMemo(
     () => ({
@@ -219,30 +137,41 @@ export function AnalysisPane() {
     }
 
     if (!validation.isValid) {
-      return <ErrorDisplay />;
+      return <ErrorDisplay validation={validation} />;
     }
 
     return <ResultsDisplay />;
   };
 
   return (
-    <PanelGroup direction="vertical">
-      <Panel defaultSize={40} minSize={20} maxSize={60}>
-        <Box sx={topSectionStyle}>
-          <AnalysisControls />
-          <GraphVisualization />
-        </Box>
-      </Panel>
+    <>
+      <PanelGroup direction="vertical">
+        <Panel defaultSize={40} minSize={20} maxSize={60}>
+          <Box sx={topSectionStyle}>
+            <AnalysisControls />
+            <GraphVisualization />
+          </Box>
+        </Panel>
 
-      <PanelResizeHandle>
-        <Box sx={resizeHandleStyle} />
-      </PanelResizeHandle>
+        <PanelResizeHandle>
+          <Box sx={resizeHandleStyle} />
+        </PanelResizeHandle>
 
-      <Panel defaultSize={60} minSize={40} maxSize={80}>
-        <Box sx={bottomSectionStyle}>
-          {renderBottomSection()}
-        </Box>
-      </Panel>
-    </PanelGroup>
+        <Panel defaultSize={60} minSize={40} maxSize={80}>
+          <Box sx={bottomSectionStyle}>
+            {renderBottomSection()}
+          </Box>
+        </Panel>
+      </PanelGroup>
+
+      {calculationError !== null && (
+        <CalculationErrorDialog
+          open={true}
+          errorMessage={calculationError}
+          technicalDetails={calculationError}
+          onClose={handleCloseErrorDialog}
+        />
+      )}
+    </>
   );
 }

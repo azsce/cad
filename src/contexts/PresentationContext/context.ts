@@ -8,7 +8,7 @@ import { createContext } from 'react';
 /**
  * Visualization mode for the graph display.
  */
-export type VisualizationMode = 'graph' | 'tree' | 'loops' | 'cutlets' | 'results';
+export type VisualizationMode = 'graph' | 'tree' | 'loops' | 'cutsets' | 'results';
 
 /**
  * Definition of a fundamental loop for visualization.

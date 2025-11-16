@@ -46,6 +46,9 @@ export function useAutoFitView({
           padding,
           duration,
         });
+      }).catch((error: unknown) => {
+        // Catch and log errors silently (e.g., if React Flow isn't fully initialized)
+        logger.warn({ caller: 'useAutoFitView' }, 'Error fitting view', { error });
       });
     }, 50);
 

@@ -44,12 +44,20 @@ export type CurrentSourceData = {
   label?: string;
   /** Rotation angle in degrees (0, 90, 180, or 270) */
   rotation?: 0 | 90 | 180 | 270;
-} 
+}
+
+/**
+ * Data for a junction node (connection point).
+ */
+export type JunctionNodeData = {
+  /** Optional label for the junction (e.g., "VCC", "GND", "Node A") */
+  label?: string;
+}
 
 /**
  * Union type for all component data types.
  */
-export type ComponentData = ResistorData | VoltageSourceData | CurrentSourceData;
+export type ComponentData = ResistorData | VoltageSourceData | CurrentSourceData | JunctionNodeData;
 
 /**
  * Position coordinate in the flow canvas.
@@ -72,19 +80,65 @@ export interface Waypoint extends Position {
 }
 
 /**
- * A circuit component node (maps to React Flow node).
- * Represents a single electrical component in the circuit.
+ * Resistor node type.
  */
-export interface CircuitNode extends Node {
-  /** Unique identifier for the node */
+export interface ResistorNode extends Node {
   id: NodeId;
-  /** Type of circuit component */
-  type: 'resistor' | 'voltageSource' | 'currentSource' | 'ground';
-  /** Position on the canvas */
+  type: 'resistor';
   position: { x: number; y: number };
-  /** Component-specific data */
-  data: ComponentData;
+  data: ResistorData;
 }
+
+/**
+ * Voltage source node type.
+ */
+export interface VoltageSourceNode extends Node {
+  id: NodeId;
+  type: 'voltageSource';
+  position: { x: number; y: number };
+  data: VoltageSourceData;
+}
+
+/**
+ * Current source node type.
+ */
+export interface CurrentSourceNode extends Node {
+  id: NodeId;
+  type: 'currentSource';
+  position: { x: number; y: number };
+  data: CurrentSourceData;
+}
+
+/**
+ * Ground node type.
+ */
+export interface GroundNode extends Node {
+  id: NodeId;
+  type: 'ground';
+  position: { x: number; y: number };
+  data: Record<string, never>;
+}
+
+/**
+ * Junction node - represents an electrical connection point where multiple wires meet.
+ * Unlike components, junctions have no electrical properties (zero impedance).
+ */
+export interface JunctionNode extends Node {
+  id: NodeId;
+  type: 'junction';
+  position: { x: number; y: number };
+  data: JunctionNodeData;
+}
+
+/**
+ * Union type for all circuit node types.
+ */
+export type CircuitNode = 
+  | ResistorNode 
+  | VoltageSourceNode 
+  | CurrentSourceNode 
+  | GroundNode
+  | JunctionNode;
 
 /**
  * A wire connection between circuit components (maps to React Flow edge).
@@ -122,4 +176,11 @@ export interface Circuit {
   createdAt: number;
   /** Timestamp when the circuit was last modified */
   modifiedAt: number;
+}
+
+/**
+ * Type guard to check if a node is a junction.
+ */
+export function isJunctionNode(node: CircuitNode): node is JunctionNode {
+  return node.type === 'junction';
 }

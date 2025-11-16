@@ -10,18 +10,28 @@ import type {
 import type {
   AnalysisGraph,
   Branch,
+  BranchId,
+  ConnectionPointKey,
   ElectricalNode,
+  NodeId,
   SpanningTree,
+  TreeId,
+} from '../../types/analysis';
+import {
+  createBranchId,
+  createConnectionPointKey,
+  createNodeId,
+  createTreeId,
 } from '../../types/analysis';
 
 /**
  * Error thrown when a spanning tree is not found.
  */
 class SpanningTreeNotFoundError extends Error {
-  readonly treeId: string;
+  readonly treeId: TreeId;
   readonly code: string;
 
-  constructor(treeId: string) {
+  constructor(treeId: TreeId) {
     super(`Spanning tree with ID "${treeId}" not found`);
     this.name = 'SpanningTreeNotFoundError';
     this.treeId = treeId;
@@ -52,14 +62,14 @@ export function createAnalysisGraph(circuit: Circuit): AnalysisGraph {
   
   // Step 3: Select reference (ground) node
   const firstNode = electricalNodes[0];
-  const referenceNodeId = firstNode ? firstNode.id : 'n0';
+  const referenceNodeId = firstNode ? firstNode.id : createNodeId('n0');
   
   // Step 4: Find all possible spanning trees
   const allSpanningTrees = findAllSpanningTrees(electricalNodes, branches);
   
   // Step 5: Select default spanning tree (first one found)
   const firstTree = allSpanningTrees[0];
-  const selectedTreeId = firstTree ? firstTree.id : 'tree-0';
+  const selectedTreeId = firstTree ? firstTree.id : createTreeId('tree-0');
   
   return {
     nodes: electricalNodes,
@@ -71,47 +81,112 @@ export function createAnalysisGraph(circuit: Circuit): AnalysisGraph {
 }
 
 /**
+ * Union-Find data structure for grouping connection points.
+ */
+class UnionFind {
+  private parent = new Map<ConnectionPointKey, ConnectionPointKey>();
+  private rank = new Map<ConnectionPointKey, number>();
+  
+  constructor(points: Set<ConnectionPointKey>) {
+    for (const point of points) {
+      this.parent.set(point, point);
+      this.rank.set(point, 0);
+    }
+  }
+  
+  find(x: ConnectionPointKey): ConnectionPointKey {
+    const p = this.parent.get(x);
+    if (p !== x && p !== undefined) {
+      this.parent.set(x, this.find(p));
+    }
+    return this.parent.get(x) ?? x;
+  }
+  
+  union(x: ConnectionPointKey, y: ConnectionPointKey): void {
+    const rootX = this.find(x);
+    const rootY = this.find(y);
+    
+    if (rootX === rootY) return;
+    
+    const rankX = this.rank.get(rootX) ?? 0;
+    const rankY = this.rank.get(rootY) ?? 0;
+    
+    if (rankX < rankY) {
+      this.parent.set(rootX, rootY);
+    } else if (rankX > rankY) {
+      this.parent.set(rootY, rootX);
+    } else {
+      this.parent.set(rootY, rootX);
+      this.rank.set(rootX, rankX + 1);
+    }
+  }
+  
+  getGroups(): Map<ConnectionPointKey, Set<ConnectionPointKey>> {
+    const groups = new Map<ConnectionPointKey, Set<ConnectionPointKey>>();
+    
+    for (const [point] of this.parent) {
+      const root = this.find(point);
+      if (!groups.has(root)) {
+        groups.set(root, new Set());
+      }
+      groups.get(root)?.add(point);
+    }
+    
+    return groups;
+  }
+}
+
+/**
  * Identifies unique electrical nodes from circuit edge connections.
+ * 
+ * Uses Union-Find algorithm to group connection points that are electrically connected.
+ * Connection points connected by a wire (edge) are at the same electrical potential
+ * and therefore belong to the same electrical node.
  * 
  * @param edges - The circuit edges
  * @returns Electrical nodes and connection point mapping
  */
 function identifyElectricalNodes(edges: Circuit['edges']): {
   electricalNodes: ElectricalNode[];
-  connectionPointToNodeId: Map<string, string>;
+  connectionPointToNodeId: Map<ConnectionPointKey, NodeId>;
 } {
-  const nodeMap = new Map<string, Set<string>>();
+  // Collect all connection points
+  const allConnectionPoints = collectAllConnectionPoints(edges);
   
-  // Build a map of connection points to the branches connected to them
+  // Group connected points using Union-Find
+  const uf = new UnionFind(allConnectionPoints);
   for (const edge of edges) {
-    const sourceKey = `${edge.source}-${edge.sourceHandle}`;
-    const targetKey = `${edge.target}-${edge.targetHandle}`;
-    
-    if (!nodeMap.has(sourceKey)) {
-      nodeMap.set(sourceKey, new Set());
-    }
-    if (!nodeMap.has(targetKey)) {
-      nodeMap.set(targetKey, new Set());
-    }
-    
-    const sourceSet = nodeMap.get(sourceKey);
-    const targetSet = nodeMap.get(targetKey);
-    if (sourceSet) sourceSet.add(edge.id);
-    if (targetSet) targetSet.add(edge.id);
+    const sourceKey = createConnectionPointKey(edge.source, edge.sourceHandle);
+    const targetKey = createConnectionPointKey(edge.target, edge.targetHandle);
+    uf.union(sourceKey, targetKey);
   }
+  
+  const nodeGroups = uf.getGroups();
+  
+  // Build map of connection points to branches
+  const pointToBranches = buildPointToBranchesMap(edges);
   
   // Create electrical nodes with standard labels (n0, n1, n2, ...)
   const electricalNodes: ElectricalNode[] = [];
-  const connectionPointToNodeId = new Map<string, string>();
+  const connectionPointToNodeId = new Map<ConnectionPointKey, NodeId>();
   
   let nodeIndex = 0;
-  for (const [connectionPoint, branchIds] of nodeMap.entries()) {
-    const nodeId = `n${String(nodeIndex)}`;
+  for (const points of nodeGroups.values()) {
+    const nodeId = createNodeId(`n${String(nodeIndex)}`);
+    
+    // Collect all branches connected to any point in this electrical node
+    const connectedBranches = collectConnectedBranches(points, pointToBranches);
+    
     electricalNodes.push({
       id: nodeId,
-      connectedBranchIds: Array.from(branchIds),
+      connectedBranchIds: Array.from(connectedBranches),
     });
-    connectionPointToNodeId.set(connectionPoint, nodeId);
+    
+    // Map all connection points in this group to the same node ID
+    for (const point of points) {
+      connectionPointToNodeId.set(point, nodeId);
+    }
+    
     nodeIndex++;
   }
   
@@ -119,7 +194,173 @@ function identifyElectricalNodes(edges: Circuit['edges']): {
 }
 
 /**
- * Creates branches from circuit components with proper direction.
+ * Collects all connection points from edges.
+ */
+function collectAllConnectionPoints(edges: Circuit['edges']): Set<ConnectionPointKey> {
+  const points = new Set<ConnectionPointKey>();
+  
+  for (const edge of edges) {
+    const sourceKey = createConnectionPointKey(edge.source, edge.sourceHandle);
+    const targetKey = createConnectionPointKey(edge.target, edge.targetHandle);
+    points.add(sourceKey);
+    points.add(targetKey);
+  }
+  
+  return points;
+}
+
+/**
+ * Builds a map of connection points to the branches connected to them.
+ */
+function buildPointToBranchesMap(edges: Circuit['edges']): Map<ConnectionPointKey, Set<BranchId>> {
+  const pointToBranches = new Map<ConnectionPointKey, Set<BranchId>>();
+  
+  for (const edge of edges) {
+    const sourceKey = createConnectionPointKey(edge.source, edge.sourceHandle);
+    const targetKey = createConnectionPointKey(edge.target, edge.targetHandle);
+    const branchId = createBranchId(edge.id);
+    
+    if (!pointToBranches.has(sourceKey)) {
+      pointToBranches.set(sourceKey, new Set());
+    }
+    if (!pointToBranches.has(targetKey)) {
+      pointToBranches.set(targetKey, new Set());
+    }
+    
+    pointToBranches.get(sourceKey)?.add(branchId);
+    pointToBranches.get(targetKey)?.add(branchId);
+  }
+  
+  return pointToBranches;
+}
+
+/**
+ * Collects all branches connected to any point in a set of connection points.
+ */
+function collectConnectedBranches(
+  points: Set<ConnectionPointKey>,
+  pointToBranches: Map<ConnectionPointKey, Set<BranchId>>
+): Set<BranchId> {
+  const connectedBranches = new Set<BranchId>();
+  
+  for (const point of points) {
+    const branches = pointToBranches.get(point);
+    if (branches) {
+      for (const branchId of branches) {
+        connectedBranches.add(branchId);
+      }
+    }
+  }
+  
+  return connectedBranches;
+}
+
+/**
+ * 🔍 Check if component should be skipped for branch creation
+ */
+function shouldSkipComponent(componentType: string): boolean {
+  return componentType === 'ground' || componentType === 'junction';
+}
+
+/**
+ * 🔍 Validate component terminals for branch creation
+ */
+function validateTerminals(
+  terminals: ConnectionPointKey[]
+): { terminal1: ConnectionPointKey; terminal2: ConnectionPointKey } | null {
+  if (terminals.length !== 2) return null;
+  
+  const [terminal1, terminal2] = terminals;
+  if (!terminal1 || !terminal2) return null;
+  
+  return { terminal1, terminal2 };
+}
+
+/**
+ * 🔍 Get node IDs for terminals
+ */
+function getNodeIdsForTerminals(
+  terminal1: ConnectionPointKey,
+  terminal2: ConnectionPointKey,
+  connectionPointToNodeId: Map<ConnectionPointKey, NodeId>
+): { node1Id: NodeId; node2Id: NodeId } | null {
+  const node1Id = connectionPointToNodeId.get(terminal1);
+  const node2Id = connectionPointToNodeId.get(terminal2);
+  
+  if (!node1Id || !node2Id) return null;
+  
+  return { node1Id, node2Id };
+}
+
+interface CreateBranchParams {
+  component: CircuitNode;
+  terminal1: ConnectionPointKey;
+  terminal2: ConnectionPointKey;
+  node1Id: NodeId;
+  node2Id: NodeId;
+}
+
+/**
+ * 🏗️ Create a branch from a component
+ */
+function createBranchFromComponent(params: CreateBranchParams): Branch {
+  const { component, terminal1, terminal2, node1Id, node2Id } = params;
+  
+  const { fromNodeId, toNodeId } = determineBranchDirectionFromComponent({
+    component,
+    terminal1,
+    terminal2,
+    node1Id,
+    node2Id,
+  });
+  
+  // Filter out ground and junction types for branch type
+  const branchType = component.type === 'ground' || component.type === 'junction' 
+    ? 'resistor' 
+    : component.type;
+  
+  return {
+    id: createBranchId(component.id),
+    type: branchType,
+    value: (component.data as { value: number }).value,
+    fromNodeId,
+    toNodeId,
+  };
+}
+
+/**
+ * 🏗️ Try to create a branch from a component
+ */
+function tryCreateBranch(
+  component: CircuitNode,
+  circuit: Circuit,
+  connectionPointToNodeId: Map<ConnectionPointKey, NodeId>
+): Branch | null {
+  if (shouldSkipComponent(component.type)) return null;
+  
+  const terminals = findComponentTerminals(component.id, circuit.edges);
+  const validatedTerminals = validateTerminals(terminals);
+  if (!validatedTerminals) return null;
+  
+  const { terminal1, terminal2 } = validatedTerminals;
+  const nodeIds = getNodeIdsForTerminals(terminal1, terminal2, connectionPointToNodeId);
+  if (!nodeIds) return null;
+  
+  const { node1Id, node2Id } = nodeIds;
+  return createBranchFromComponent({
+    component,
+    terminal1,
+    terminal2,
+    node1Id,
+    node2Id,
+  });
+}
+
+/**
+ * 🏗️ Creates branches from circuit components with proper direction (CC=3, 12 lines)
+ * 
+ * Each circuit component (resistor, voltage source, current source) becomes one branch.
+ * The branch connects the two electrical nodes at the component's terminals.
  * 
  * @param circuit - The circuit
  * @param connectionPointToNodeId - Mapping from connection points to node IDs
@@ -127,78 +368,96 @@ function identifyElectricalNodes(edges: Circuit['edges']): {
  */
 function createBranches(
   circuit: Circuit,
-  connectionPointToNodeId: Map<string, string>
+  connectionPointToNodeId: Map<ConnectionPointKey, NodeId>
 ): Branch[] {
   const branches: Branch[] = [];
-  const componentMap = new Map<string, CircuitNode>();
   
-  for (const node of circuit.nodes) {
-    componentMap.set(node.id, node);
-  }
-  
-  for (const edge of circuit.edges) {
-    const component = componentMap.get(edge.source);
-    if (!component || component.type === 'ground') continue;
-    
-    const sourceKey = `${edge.source}-${edge.sourceHandle}`;
-    const targetKey = `${edge.target}-${edge.targetHandle}`;
-    
-    const fromNodeId = connectionPointToNodeId.get(sourceKey);
-    const toNodeId = connectionPointToNodeId.get(targetKey);
-    
-    if (!fromNodeId || !toNodeId) continue;
-    
-    const { actualFromNodeId, actualToNodeId } = determineBranchDirection(
-      component,
-      edge,
-      fromNodeId,
-      toNodeId
-    );
-    
-    branches.push({
-      id: edge.id,
-      type: component.type,
-      value: (component.data as { value: number }).value,
-      fromNodeId: actualFromNodeId,
-      toNodeId: actualToNodeId,
-    });
+  for (const component of circuit.nodes) {
+    const branch = tryCreateBranch(component, circuit, connectionPointToNodeId);
+    if (branch) {
+      branches.push(branch);
+    }
   }
   
   return branches;
 }
 
 /**
+ * Finds the terminal connection points for a component.
+ * Returns an array of connection point keys (componentId-handleId).
+ */
+function findComponentTerminals(componentId: string, edges: Circuit['edges']): ConnectionPointKey[] {
+  const terminals = new Set<ConnectionPointKey>();
+  
+  for (const edge of edges) {
+    if (edge.source === componentId) {
+      terminals.add(createConnectionPointKey(edge.source, edge.sourceHandle));
+    }
+    if (edge.target === componentId) {
+      terminals.add(createConnectionPointKey(edge.target, edge.targetHandle));
+    }
+  }
+  
+  return Array.from(terminals);
+}
+
+/**
+ * Parameters for determining branch direction.
+ */
+interface BranchDirectionParams {
+  component: CircuitNode;
+  terminal1: ConnectionPointKey;
+  terminal2: ConnectionPointKey;
+  node1Id: NodeId;
+  node2Id: NodeId;
+}
+
+/**
  * Determines the correct branch direction based on component type and orientation.
  * 
- * @param component - The circuit component
- * @param edge - The circuit edge
- * @param fromNodeId - Initial from node ID
- * @param toNodeId - Initial to node ID
- * @returns Actual from and to node IDs
+ * For resistors: direction doesn't matter (symmetric)
+ * For voltage/current sources: direction matters and is determined by the 'direction' property
+ * 
+ * @param params - Branch direction parameters
+ * @returns From and to node IDs with correct direction
  */
-function determineBranchDirection(
-  component: CircuitNode,
-  edge: Circuit['edges'][0],
-  fromNodeId: string,
-  toNodeId: string
-): { actualFromNodeId: string; actualToNodeId: string } {
-  let actualFromNodeId = fromNodeId;
-  let actualToNodeId = toNodeId;
+function determineBranchDirectionFromComponent(
+  params: BranchDirectionParams
+): { fromNodeId: NodeId; toNodeId: NodeId } {
+  const { component, terminal1, node1Id, node2Id } = params;
+  // Extract handle IDs from terminal keys
+  const handle1 = (terminal1 as string).split('-')[1];
+  
+  // For resistors, direction doesn't matter - use arbitrary order
+  if (component.type === 'resistor') {
+    return { fromNodeId: node1Id, toNodeId: node2Id };
+  }
   
   // For voltage and current sources, respect the direction property
   if (component.type === 'voltageSource' || component.type === 'currentSource') {
     const data = component.data as { direction?: string; value: number };
-    const shouldSwap = 
-      (data.direction === 'down' && edge.sourceHandle === 'top') ||
-      (data.direction === 'up' && edge.sourceHandle === 'bottom');
+    const direction = data.direction ?? 'down';
     
-    if (shouldSwap) {
-      actualFromNodeId = toNodeId;
-      actualToNodeId = fromNodeId;
+    // Determine which terminal is positive/from based on direction and handles
+    // Direction 'down' means current flows from top to bottom
+    // Direction 'up' means current flows from bottom to top
+    const isTerminal1Top = handle1 === 'top' || handle1 === 'left';
+    
+    if (direction === 'down') {
+      // Current flows from top/left to bottom/right
+      return isTerminal1Top 
+        ? { fromNodeId: node1Id, toNodeId: node2Id }
+        : { fromNodeId: node2Id, toNodeId: node1Id };
+    } else {
+      // Current flows from bottom/right to top/left
+      return isTerminal1Top
+        ? { fromNodeId: node2Id, toNodeId: node1Id }
+        : { fromNodeId: node1Id, toNodeId: node2Id };
     }
   }
   
-  return { actualFromNodeId, actualToNodeId };
+  // Default: use arbitrary order
+  return { fromNodeId: node1Id, toNodeId: node2Id };
 }
 
 /**
@@ -239,7 +498,7 @@ function enumerateValidSpanningTrees(
   treeSize: number
 ): SpanningTree[] {
   const spanningTrees: SpanningTree[] = [];
-  const combinations = generateCombinations(branches.map(b => b.id), treeSize);
+  const combinations = generateCombinations<BranchId>(branches.map(b => b.id), treeSize);
   
   for (const combination of combinations) {
     const tree = tryCreateSpanningTree(combination, nodes, branches, spanningTrees.length);
@@ -255,7 +514,7 @@ function enumerateValidSpanningTrees(
  * Tries to create a spanning tree from a combination of branch IDs.
  */
 function tryCreateSpanningTree(
-  combination: string[],
+  combination: BranchId[],
   nodes: ElectricalNode[],
   branches: Branch[],
   treeIndex: number
@@ -270,7 +529,7 @@ function tryCreateSpanningTree(
     .filter(id => !twigBranchIds.includes(id));
   
   return {
-    id: `tree-${String(treeIndex)}`,
+    id: createTreeId(`tree-${String(treeIndex)}`),
     twigBranchIds,
     linkBranchIds,
     description: `Spanning tree ${String(treeIndex + 1)}`,
@@ -307,7 +566,7 @@ function ensureAtLeastOneTree(
  */
 export function selectSpanningTree(
   graph: AnalysisGraph,
-  treeId: string
+  treeId: TreeId
 ): AnalysisGraph {
   const treeExists = graph.allSpanningTrees.some(tree => tree.id === treeId);
   
@@ -361,7 +620,7 @@ function generateCombinations<T>(array: T[], k: number): T[][] {
  * @returns True if the branches form a spanning tree
  */
 function isSpanningTree(
-  branchIds: string[],
+  branchIds: BranchId[],
   nodes: ElectricalNode[],
   branches: Branch[]
 ): boolean {
@@ -397,9 +656,9 @@ function isSpanningTree(
 function buildAdjacencyList(
   nodes: ElectricalNode[],
   branches: Branch[],
-  branchSet: Set<string>
-): Map<string, string[]> {
-  const adjacency = new Map<string, string[]>();
+  branchSet: Set<BranchId>
+): Map<NodeId, NodeId[]> {
+  const adjacency = new Map<NodeId, NodeId[]>();
   
   for (const node of nodes) {
     adjacency.set(node.id, []);
@@ -425,11 +684,11 @@ function buildAdjacencyList(
  * @returns Number of reachable nodes
  */
 function countConnectedNodes(
-  startNodeId: string,
-  adjacency: Map<string, string[]>
+  startNodeId: NodeId,
+  adjacency: Map<NodeId, NodeId[]>
 ): number {
-  const visited = new Set<string>();
-  const queue: string[] = [startNodeId];
+  const visited = new Set<NodeId>();
+  const queue: NodeId[] = [startNodeId];
   visited.add(startNodeId);
   
   while (queue.length > 0) {
@@ -446,10 +705,10 @@ function countConnectedNodes(
  * Visits all unvisited neighbors of a node and adds them to the queue.
  */
 function visitUnvisitedNeighbors(
-  nodeId: string,
-  adjacency: Map<string, string[]>,
-  visited: Set<string>,
-  queue: string[]
+  nodeId: NodeId,
+  adjacency: Map<NodeId, NodeId[]>,
+  visited: Set<NodeId>,
+  queue: NodeId[]
 ): void {
   const neighbors = adjacency.get(nodeId) || [];
   
@@ -488,7 +747,7 @@ function createDefaultSpanningTree(
  * Builds a spanning tree from BFS results.
  */
 function buildSpanningTreeFromBFS(
-  result: { branches: string[]; visitedCount: number } | null,
+  result: { branches: BranchId[]; visitedCount: number } | null,
   totalNodes: number,
   branches: Branch[]
 ): SpanningTree | null {
@@ -501,7 +760,7 @@ function buildSpanningTreeFromBFS(
     .filter(id => !result.branches.includes(id));
   
   return {
-    id: 'tree-0',
+    id: createTreeId('tree-0'),
     twigBranchIds: result.branches,
     linkBranchIds,
     description: 'Default spanning tree (BFS)',
@@ -518,8 +777,8 @@ function buildSpanningTreeFromBFS(
 function buildBranchAdjacencyList(
   nodes: ElectricalNode[],
   branches: Branch[]
-): Map<string, Array<{ nodeId: string; branchId: string }>> {
-  const adjacency = new Map<string, Array<{ nodeId: string; branchId: string }>>();
+): Map<NodeId, Array<{ nodeId: NodeId; branchId: BranchId }>> {
+  const adjacency = new Map<NodeId, Array<{ nodeId: NodeId; branchId: BranchId }>>();
   
   for (const node of nodes) {
     adjacency.set(node.id, []);
@@ -553,12 +812,12 @@ function buildBranchAdjacencyList(
  * @returns Branch IDs forming the spanning tree and visited count, or null if failed
  */
 function performBFSForSpanningTree(
-  startNodeId: string,
-  adjacency: Map<string, Array<{ nodeId: string; branchId: string }>>
-): { branches: string[]; visitedCount: number } | null {
-  const visited = new Set<string>();
-  const twigBranchIds: string[] = [];
-  const queue: string[] = [startNodeId];
+  startNodeId: NodeId,
+  adjacency: Map<NodeId, Array<{ nodeId: NodeId; branchId: BranchId }>>
+): { branches: BranchId[]; visitedCount: number } | null {
+  const visited = new Set<NodeId>();
+  const twigBranchIds: BranchId[] = [];
+  const queue: NodeId[] = [startNodeId];
   visited.add(startNodeId);
   
   while (queue.length > 0) {

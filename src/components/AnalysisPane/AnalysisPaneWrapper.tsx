@@ -14,7 +14,6 @@ import {
   FullscreenExit as FullscreenExitIcon,
   ChevronRight as ChevronRightIcon,
   ChevronLeft as ChevronLeftIcon,
-  AccountTree as AccountTreeIcon,
 } from '@mui/icons-material';
 import { useUIStore } from '../../store/uiStore';
 import { useCircuitStore } from '../../store/circuitStore';
@@ -22,6 +21,7 @@ import { ValidationProvider, useValidation } from '../../contexts/ValidationCont
 import { CalculationProvider, useCalculation } from '../../contexts/CalculationContext';
 import { PresentationProvider } from '../../contexts/PresentationContext';
 import { AnalysisPane } from './AnalysisPane';
+import { EmptyState } from './EmptyState';
 import type { AnalysisGraph } from '../../types/analysis';
 
 /**
@@ -63,35 +63,7 @@ function PresentationWrapper({
   );
 }
 
-/**
- * 📭 Empty state component shown when no circuit is selected
- */
-function EmptyState() {
-  const emptyStateStyle = useMemo(
-    () => ({
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100%',
-      gap: 2,
-      color: 'text.secondary',
-    }),
-    []
-  );
 
-  return (
-    <Box sx={emptyStateStyle}>
-      <AccountTreeIcon sx={{ fontSize: 64, opacity: 0.3 }} />
-      <Typography variant="h6" color="text.secondary">
-        No Circuit Selected
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        Select or create a circuit to begin analysis
-      </Typography>
-    </Box>
-  );
-}
 
 /**
  * 🎯 Main wrapper component for the Analysis Pane

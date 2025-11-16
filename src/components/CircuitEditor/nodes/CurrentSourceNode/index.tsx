@@ -5,7 +5,7 @@
  * and an inline editable current value input.
  */
 
-import { memo, useState } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import type { NodeProps, Node } from '@xyflow/react';
 import { logger } from '../../../../utils/logger';
 import type { CurrentSourceData } from '../../../../types/circuit';
@@ -24,9 +24,17 @@ import { useCurrentDimensions } from './useCurrentDimensions';
  * Displays a current source symbol with editable current value and direction control.
  */
 export const CurrentSourceNode = memo(({ id, data, selected }: NodeProps<Node<CurrentSourceData>>) => {
-  logger.debug({ caller: 'CurrentSourceNode' }, 'Rendering node', { id, data });
-
   const [isHovered, setIsHovered] = useState(false);
+  const lastLogTimeRef = useRef<number>(0);
+
+  // Throttled logging effect - runs every 3 seconds
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastLogTimeRef.current < 3000) return;
+
+    logger.debug({ caller: 'CurrentSourceNode' }, 'Rendering node', { id, data });
+    lastLogTimeRef.current = now;
+  }, [id, data]);
   const rotation = data.rotation ?? 0;
 
   const { handleRotateClockwise, handleRotateCounterClockwise } = useCurrentRotation({

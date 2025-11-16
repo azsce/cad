@@ -32,6 +32,7 @@ export function CircuitEditorInner() {
     onConnect,
     onPaneClick,
     onPaneMouseMove,
+    onEdgeClick,
     addNode: addNodeToFlow,
     deleteNodes,
     deleteEdges,
@@ -46,7 +47,8 @@ export function CircuitEditorInner() {
   // Component drop handling
   const { configDialogOpen, pendingComponent, onDragOver, onDrop, closeDialog } = useComponentDrop(
     reactFlowInstance,
-    reactFlowWrapper
+    reactFlowWrapper,
+    addNodeToFlow
   );
 
   // Connection validation
@@ -90,6 +92,7 @@ export function CircuitEditorInner() {
             onConnect={onConnect}
             onPaneClick={onPaneClick}
             onPaneMouseMove={onPaneMouseMove}
+            onEdgeClick={onEdgeClick}
             onDragOver={onDragOver}
             onDrop={onDrop}
             isValidConnection={isValidConnection}

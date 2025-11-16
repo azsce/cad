@@ -6,6 +6,8 @@ import { useCallback, useState } from 'react';
 import type { ReactFlowInstance } from '@xyflow/react';
 import { logger } from '../../../utils/logger';
 import { VALID_COMPONENT_TYPES } from './constants';
+import { createNodeId } from '../../../types/identifiers';
+import type { CircuitNode } from '../../../types/circuit';
 
 interface PendingComponent {
   type: 'resistor' | 'voltageSource' | 'currentSource';
@@ -14,7 +16,8 @@ interface PendingComponent {
 
 export const useComponentDrop = (
   reactFlowInstance: ReactFlowInstance,
-  reactFlowWrapper: React.RefObject<HTMLDivElement | null>
+  reactFlowWrapper: React.RefObject<HTMLDivElement | null>,
+  addNodeToFlow: (node: CircuitNode) => void
 ) => {
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [pendingComponent, setPendingComponent] = useState<PendingComponent | null>(null);
@@ -34,8 +37,9 @@ export const useComponentDrop = (
       // cspell:ignore reactflow
       const type = event.dataTransfer.getData('application/reactflow');
 
-      // Validate component type
-      if (!type || !VALID_COMPONENT_TYPES.includes(type as never)) {
+      // Validate component type (including junction)
+      const isValidType = type && (VALID_COMPONENT_TYPES.includes(type as never) || type === 'junction');
+      if (!isValidType) {
         logger.error({ caller: 'useComponentDrop' }, 'Invalid component type', { type });
         return;
       }
@@ -47,14 +51,33 @@ export const useComponentDrop = (
         y: event.clientY - reactFlowBounds.top,
       });
 
-      // Store pending component and open configuration dialog
+      // Junction doesn't need config dialog - create immediately
+      if (type === 'junction') {
+        const junctionNode: CircuitNode = {
+          id: createNodeId(`junction-${Date.now().toString()}`),
+          type: 'junction',
+          position,
+          data: {}, // No label initially
+        };
+        
+        logger.debug({ caller: 'useComponentDrop' }, 'Creating junction node', { junctionNode });
+        addNodeToFlow(junctionNode);
+        
+        // Fit view to show the new node
+        requestAnimationFrame(() => {
+          void reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+        });
+        return;
+      }
+
+      // Other components need config dialog
       setPendingComponent({
         type: type as 'resistor' | 'voltageSource' | 'currentSource',
         position,
       });
       setConfigDialogOpen(true);
     },
-    [reactFlowInstance, reactFlowWrapper]
+    [reactFlowInstance, reactFlowWrapper, addNodeToFlow]
   );
 
   const closeDialog = useCallback(() => {

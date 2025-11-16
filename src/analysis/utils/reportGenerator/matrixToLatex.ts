@@ -19,7 +19,7 @@ import type { Matrix } from 'mathjs';
  * ```
  */
 export function matrixToLatex(matrix: Matrix): string {
-  const data = matrix.toArray() as number[][];
+  const data = matrix.valueOf() as number[][];
   
   // Handle empty matrix
   if (data.length === 0) {

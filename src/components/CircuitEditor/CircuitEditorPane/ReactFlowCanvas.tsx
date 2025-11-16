@@ -23,6 +23,7 @@ export const ReactFlowCanvas = memo(
     onConnect,
     onPaneClick,
     onPaneMouseMove,
+    onEdgeClick,
     onDragOver,
     onDrop,
     isValidConnection,
@@ -44,6 +45,7 @@ export const ReactFlowCanvas = memo(
           onConnect={onConnect}
           onPaneClick={onPaneClick}
           onPaneMouseMove={onPaneMouseMove}
+          onEdgeClick={onEdgeClick}
           onDragOver={onDragOver}
           onDrop={onDrop}
           nodeTypes={nodeTypes}
@@ -55,7 +57,7 @@ export const ReactFlowCanvas = memo(
           deleteKeyCode={null}
           nodesDraggable={!isConnecting}
           nodesConnectable={false}
-          elementsSelectable={!isConnecting}
+          elementsSelectable={true}
         >
           <Background color={theme.palette.mode === 'dark' ? '#555' : '#aaa'} gap={16} />
           <Controls />
