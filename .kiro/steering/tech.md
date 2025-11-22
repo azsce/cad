@@ -59,3 +59,23 @@ bun run preview
 - Unused variables must be prefixed with `_`
 - Type-aware linting enabled for maximum safety
 - Spell checking enforced with auto-fix
+- No direct `console` usage (use logger instead)
+- **No nested ternary operators** - extract into if/else statements or separate functions for readability
+
+## Logging
+
+- **Always use the logger utility** instead of `console` methods
+- Import: `import { logger } from '@/utils/logger'`
+- Usage requires a `caller` identifier: `logger.info({ caller: "ComponentName" }, "Message", data)`
+- Logger is enabled only in development mode
+- Logs are batched and sent to `/api/logs` endpoint
+- Log files are saved to `logs/client_[sessionId].log`
+- Each log includes: timestamp, level, caller, sequence number, and message
+
+## React Performance Optimization
+
+- **Always use `useMemo` for computed values and object/array literals** that are passed as props or used as dependencies
+- **Always use `useCallback` for function definitions** that are passed as props or used as dependencies
+- Wrap expensive computations in `useMemo` to prevent unnecessary recalculations
+- Wrap event handlers and callbacks in `useCallback` to maintain referential equality
+- Use `memo()` for component exports when appropriate to prevent unnecessary re-renders

@@ -1,8 +1,71 @@
 #!/bin/bash
 
-# 1. Run the official installer
+set -e  # Exit on error
+
+# 1. Install Bun using alternative method (direct GitHub download)
 echo "📦 Starting Bun installation..."
-curl -fsSL https://bun.sh/install | bash
+
+# Detect OS and architecture
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+case "$OS" in
+  Linux*)
+    case "$ARCH" in
+      x86_64) TARGET="linux-x64" ;;
+      aarch64|arm64) TARGET="linux-aarch64" ;;
+      *) echo "❌ Unsupported architecture: $ARCH"; exit 1 ;;
+    esac
+    ;;
+  Darwin*)
+    case "$ARCH" in
+      x86_64) TARGET="darwin-x64" ;;
+      arm64) TARGET="darwin-aarch64" ;;
+      *) echo "❌ Unsupported architecture: $ARCH"; exit 1 ;;
+    esac
+    ;;
+  *)
+    echo "❌ Unsupported OS: $OS"
+    exit 1
+    ;;
+esac
+
+echo "🖥️  Detected: $OS ($ARCH) → $TARGET"
+
+# Use direct download method (official installer is unreliable)
+echo "📥 Using direct download method..."
+
+BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+BIN_DIR="$BUN_INSTALL/bin"
+
+# Create directories
+mkdir -p "$BIN_DIR"
+
+# Get latest version
+echo "🔍 Fetching latest Bun version..."
+LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/oven-sh/bun/releases/latest | grep '"tag_name"' | sed -E 's/.*"bun-v([^"]+)".*/\1/')
+
+if [ -z "$LATEST_VERSION" ]; then
+  echo "❌ Failed to fetch latest Bun version"
+  exit 1
+fi
+
+echo "📥 Downloading Bun v$LATEST_VERSION for $TARGET..."
+
+# Download and extract
+DOWNLOAD_URL="https://github.com/oven-sh/bun/releases/download/bun-v${LATEST_VERSION}/bun-${TARGET}.zip"
+
+if curl -fsSL "$DOWNLOAD_URL" -o /tmp/bun.zip; then
+  echo "📦 Extracting Bun..."
+  unzip -q -o /tmp/bun.zip -d /tmp/
+  mv "/tmp/bun-${TARGET}/bun" "$BIN_DIR/bun"
+  chmod +x "$BIN_DIR/bun"
+  rm -rf /tmp/bun.zip "/tmp/bun-${TARGET}"
+  echo "✅ Bun installed successfully via direct download"
+else
+  echo "❌ Failed to download Bun from GitHub"
+  exit 1
+fi
 
 # 2. Define environment variables
 BUN_INSTALL="$HOME/.bun"
@@ -44,7 +107,8 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 echo "✅ Bun configuration added to all available shell profiles."
 
 # 7. Verify installation
-echo "\n🔍 Verifying installation..."
+echo ""
+echo "� Veruifying installation..."
 if command -v bun >/dev/null 2>&1; then
   echo "✅ Bun is now available in PATH: $(which bun)"
   echo "📋 Bun version: $(bun --version)"
@@ -54,7 +118,8 @@ else
 fi
 
 # 8. Provide final instructions
-echo "\n🎉 Bun installation complete!"
+echo ""
+echo "🎉 Bun installation complete!"
 echo "To get started:"
 echo "  1. Restart your terminal, or"
 echo "  2. Run: source ~/.profile (or your shell's config file)"

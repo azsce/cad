@@ -4,8 +4,28 @@
  * React Flow is configured as a controlled component that syncs with this store.
  */
 
-import { create } from 'zustand';
-import type { Circuit, CircuitNode, CircuitEdge } from '../types/circuit';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { logger } from "../utils/logger";
+import type { Circuit, CircuitNode, CircuitEdge } from "../types/circuit";
+import type { CircuitId, NodeId, EdgeId } from "../types/identifiers";
+import { generateCircuitId } from "../types/identifiers";
+
+/**
+ * Parameters for node operations to reduce string parameter count.
+ */
+interface NodeOperationParams {
+  circuitId: CircuitId;
+  nodeId: NodeId;
+}
+
+/**
+ * Parameters for edge operations to reduce string parameter count.
+ */
+interface EdgeOperationParams {
+  circuitId: CircuitId;
+  edgeId: EdgeId;
+}
 
 /**
  * The Zustand store interface for circuit management.
@@ -16,327 +36,273 @@ interface CircuitStore {
   /** All circuits keyed by their ID */
   circuits: Record<string, Circuit>;
   /** ID of the currently active circuit */
-  activeCircuitId: string | null;
+  activeCircuitId: CircuitId | null;
 
   // Circuit management actions
   /** Create a new circuit and return its ID */
-  createCircuit: (name?: string) => string;
+  createCircuit: (name?: string) => CircuitId;
   /** Delete a circuit by ID */
-  deleteCircuit: (id: string) => void;
+  deleteCircuit: (id: CircuitId) => void;
   /** Set the active circuit */
-  setActiveCircuit: (id: string) => void;
+  setActiveCircuit: (id: CircuitId) => void;
   /** Update a circuit's name */
-  updateCircuitName: (id: string, name: string) => void;
+  updateCircuitName: (id: CircuitId, name: string) => void;
 
   // Node manipulation actions
   /** Add a node to a circuit */
-  addNode: (circuitId: string, node: CircuitNode) => void;
+  addNode: (circuitId: CircuitId, node: CircuitNode) => void;
   /** Update a node in a circuit */
-  updateNode: (
-    circuitId: string,
-    nodeId: string,
-    updates: Partial<CircuitNode>
-  ) => void;
+  updateNode: (params: NodeOperationParams, updates: Partial<CircuitNode>) => void;
   /** Delete a node from a circuit */
-  deleteNode: (circuitId: string, nodeId: string) => void;
+  deleteNode: (params: NodeOperationParams) => void;
 
   // Edge manipulation actions
   /** Add an edge to a circuit */
-  addEdge: (circuitId: string, edge: CircuitEdge) => void;
+  addEdge: (circuitId: CircuitId, edge: CircuitEdge) => void;
   /** Update an edge in a circuit */
-  updateEdge: (
-    circuitId: string,
-    edgeId: string,
-    updates: Partial<CircuitEdge>
-  ) => void;
+  updateEdge: (params: EdgeOperationParams, updates: Partial<CircuitEdge>) => void;
   /** Delete an edge from a circuit */
-  deleteEdge: (circuitId: string, edgeId: string) => void;
+  deleteEdge: (params: EdgeOperationParams) => void;
 
   // Batch update actions (for React Flow integration)
   /** Sync all nodes from React Flow to the store */
-  syncNodesFromFlow: (circuitId: string, nodes: CircuitNode[]) => void;
+  syncNodesFromFlow: (circuitId: CircuitId, nodes: CircuitNode[]) => void;
   /** Sync all edges from React Flow to the store */
-  syncEdgesFromFlow: (circuitId: string, edges: CircuitEdge[]) => void;
+  syncEdgesFromFlow: (circuitId: CircuitId, edges: CircuitEdge[]) => void;
 
   // Selectors
   /** Get the currently active circuit */
   getActiveCircuit: () => Circuit | null;
   /** Get a circuit by ID */
-  getCircuitById: (id: string) => Circuit | undefined;
+  getCircuitById: (id: CircuitId) => Circuit | undefined;
 }
 
 /**
- * Generate a unique ID for circuits.
- * Uses timestamp and crypto.randomUUID for uniqueness.
+ * Helper function to update a circuit in the store.
+ * Reduces code duplication by centralizing the update pattern.
  */
-function generateCircuitId(): string {
-  const timestamp = Date.now().toString();
-  const randomPart = crypto.randomUUID().substring(0, 8);
-  return `circuit-${timestamp}-${randomPart}`;
+function updateCircuit(state: CircuitStore, circuitId: CircuitId, updates: Partial<Circuit>): CircuitStore {
+  const circuit = state.circuits[circuitId];
+  if (!circuit) return state;
+
+  return {
+    ...state,
+    circuits: {
+      ...state.circuits,
+      [circuitId]: {
+        ...circuit,
+        ...updates,
+        modifiedAt: Date.now(),
+      },
+    },
+  };
+}
+
+/**
+ * Helper function to update an item in an array by ID.
+ * Returns null if the item is not found.
+ */
+function updateItemInArray<T extends { id: NodeId | EdgeId }>(
+  items: T[],
+  itemId: NodeId | EdgeId,
+  updates: Partial<T>
+): T[] | null {
+  const itemIndex = items.findIndex(item => item.id === itemId);
+  if (itemIndex === -1) return null;
+
+  const updatedItems = [...items];
+  const existingItem = updatedItems[itemIndex];
+  if (!existingItem) return null;
+
+  updatedItems[itemIndex] = {
+    ...existingItem,
+    ...updates,
+  } as T;
+
+  return updatedItems;
 }
 
 /**
  * Create the Zustand store for circuit management.
+ * Uses persist middleware to save circuits to localStorage.
  */
-export const useCircuitStore = create<CircuitStore>((set, get) => ({
-  // Initial state
-  circuits: {},
-  activeCircuitId: null,
+export const useCircuitStore = create<CircuitStore>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      circuits: {},
+      activeCircuitId: null,
 
-  // Circuit management actions
-  createCircuit: (name?: string) => {
-    const id = generateCircuitId();
-    const now = Date.now();
-    const circuitCount = Object.keys(get().circuits).length + 1;
-    const circuit: Circuit = {
-      id,
-      name: name ?? `Circuit ${circuitCount.toString()}`,
-      nodes: [],
-      edges: [],
-      createdAt: now,
-      modifiedAt: now,
-    };
+      // Circuit management actions
+      createCircuit: (name?: string) => {
+        const id = generateCircuitId();
+        const now = Date.now();
+        const circuitCount = Object.keys(get().circuits).length + 1;
+        const circuit: Circuit = {
+          id,
+          name: name ?? `Circuit ${circuitCount.toString()}`,
+          nodes: [],
+          edges: [],
+          createdAt: now,
+          modifiedAt: now,
+        };
 
-    set((state) => ({
-      circuits: {
-        ...state.circuits,
-        [id]: circuit,
+        set(state => ({
+          circuits: {
+            ...state.circuits,
+            [id]: circuit,
+          },
+          activeCircuitId: id,
+        }));
+
+        return id;
       },
-      activeCircuitId: id,
-    }));
 
-    return id;
-  },
+      deleteCircuit: (id: CircuitId) => {
+        set(state => {
+          const remainingCircuits = Object.fromEntries(Object.entries(state.circuits).filter(([key]) => key !== id));
+          const firstKey = Object.keys(remainingCircuits)[0];
+          const newActiveId =
+            state.activeCircuitId === id ? ((firstKey as CircuitId | undefined) ?? null) : state.activeCircuitId;
 
-  deleteCircuit: (id: string) => {
-    set((state) => {
-      const remainingCircuits = Object.fromEntries(
-        Object.entries(state.circuits).filter(([key]) => key !== id)
-      );
-      const newActiveId =
-        state.activeCircuitId === id
-          ? Object.keys(remainingCircuits)[0] ?? null
-          : state.activeCircuitId;
+          return {
+            circuits: remainingCircuits,
+            activeCircuitId: newActiveId,
+          };
+        });
+      },
 
-      return {
-        circuits: remainingCircuits,
-        activeCircuitId: newActiveId,
-      };
-    });
-  },
+      setActiveCircuit: (id: CircuitId) => {
+        set({ activeCircuitId: id });
+      },
 
-  setActiveCircuit: (id: string) => {
-    set({ activeCircuitId: id });
-  },
+      updateCircuitName: (id: CircuitId, name: string) => {
+        set(state => updateCircuit(state, id, { name }));
+      },
 
-  updateCircuitName: (id: string, name: string) => {
-    set((state) => {
-      const circuit = state.circuits[id];
-      if (!circuit) return state;
+      // Node manipulation actions
+      addNode: (circuitId: CircuitId, node: CircuitNode) => {
+        logger.debug({ caller: "circuitStore.addNode" }, "addNode called", { circuitId, node });
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [id]: {
-            ...circuit,
-            name,
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
+        set(state => {
+          logger.debug({ caller: "circuitStore.addNode" }, "Current state circuits", Object.keys(state.circuits));
+          const circuit = state.circuits[circuitId];
 
-  // Node manipulation actions
-  addNode: (circuitId: string, node: CircuitNode) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
+          if (!circuit) {
+            logger.error({ caller: "circuitStore.addNode" }, "Circuit not found!", { circuitId });
+            return state;
+          }
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
-            nodes: [...circuit.nodes, node],
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
+          logger.debug({ caller: "circuitStore.addNode" }, "Current nodes count", circuit.nodes.length);
+          const newNodes = [...circuit.nodes, node];
+          logger.debug({ caller: "circuitStore.addNode" }, "New nodes count", newNodes.length);
 
-  updateNode: (circuitId: string, nodeId: string, updates: Partial<CircuitNode>) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
+          const updatedState = {
+            circuits: {
+              ...state.circuits,
+              [circuitId]: {
+                ...circuit,
+                nodes: newNodes,
+                modifiedAt: Date.now(),
+              },
+            },
+          };
 
-      const nodeIndex = circuit.nodes.findIndex((n) => n.id === nodeId);
-      if (nodeIndex === -1) return state;
+          logger.debug({ caller: "circuitStore.addNode" }, "Updated state created");
+          return updatedState;
+        });
 
-      const updatedNodes = [...circuit.nodes];
-      const existingNode = updatedNodes[nodeIndex];
-      if (!existingNode) return state;
+        logger.debug({ caller: "circuitStore.addNode" }, "addNode completed");
+      },
 
-      updatedNodes[nodeIndex] = {
-        ...existingNode,
-        ...updates,
-      } as CircuitNode;
+      updateNode: ({ circuitId, nodeId }: NodeOperationParams, updates: Partial<CircuitNode>) => {
+        set(state => {
+          const circuit = state.circuits[circuitId];
+          if (!circuit) return state;
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
-            nodes: updatedNodes,
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
+          const updatedNodes = updateItemInArray(circuit.nodes, nodeId, updates);
+          if (!updatedNodes) return state;
 
-  deleteNode: (circuitId: string, nodeId: string) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
+          return updateCircuit(state, circuitId, { nodes: updatedNodes });
+        });
+      },
 
-      // Remove the node
-      const updatedNodes = circuit.nodes.filter((n) => n.id !== nodeId);
+      deleteNode: ({ circuitId, nodeId }: NodeOperationParams) => {
+        set(state => {
+          const circuit = state.circuits[circuitId];
+          if (!circuit) return state;
 
-      // Remove all edges connected to this node
-      const updatedEdges = circuit.edges.filter(
-        (e) => e.source !== nodeId && e.target !== nodeId
-      );
+          // Remove the node
+          const updatedNodes = circuit.nodes.filter(n => n.id !== nodeId);
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
+          // Remove all edges connected to this node
+          const updatedEdges = circuit.edges.filter(e => e.source !== nodeId && e.target !== nodeId);
+
+          return updateCircuit(state, circuitId, {
             nodes: updatedNodes,
             edges: updatedEdges,
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
+          });
+        });
+      },
 
-  // Edge manipulation actions
-  addEdge: (circuitId: string, edge: CircuitEdge) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
+      // Edge manipulation actions
+      addEdge: (circuitId: CircuitId, edge: CircuitEdge) => {
+        set(state => {
+          const circuit = state.circuits[circuitId];
+          if (!circuit) return state;
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
+          return updateCircuit(state, circuitId, {
             edges: [...circuit.edges, edge],
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
+          });
+        });
+      },
 
-  updateEdge: (circuitId: string, edgeId: string, updates: Partial<CircuitEdge>) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
+      updateEdge: ({ circuitId, edgeId }: EdgeOperationParams, updates: Partial<CircuitEdge>) => {
+        set(state => {
+          const circuit = state.circuits[circuitId];
+          if (!circuit) return state;
 
-      const edgeIndex = circuit.edges.findIndex((e) => e.id === edgeId);
-      if (edgeIndex === -1) return state;
+          const updatedEdges = updateItemInArray(circuit.edges, edgeId, updates);
+          if (!updatedEdges) return state;
 
-      const updatedEdges = [...circuit.edges];
-      const existingEdge = updatedEdges[edgeIndex];
-      if (!existingEdge) return state;
+          return updateCircuit(state, circuitId, { edges: updatedEdges });
+        });
+      },
 
-      updatedEdges[edgeIndex] = {
-        ...existingEdge,
-        ...updates,
-      } as CircuitEdge;
+      deleteEdge: ({ circuitId, edgeId }: EdgeOperationParams) => {
+        set(state => {
+          const circuit = state.circuits[circuitId];
+          if (!circuit) return state;
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
-            edges: updatedEdges,
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
+          const updatedEdges = circuit.edges.filter(e => e.id !== edgeId);
 
-  deleteEdge: (circuitId: string, edgeId: string) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
+          return updateCircuit(state, circuitId, { edges: updatedEdges });
+        });
+      },
 
-      const updatedEdges = circuit.edges.filter((e) => e.id !== edgeId);
+      // Batch update actions (for React Flow integration)
+      syncNodesFromFlow: (circuitId: CircuitId, nodes: CircuitNode[]) => {
+        set(state => updateCircuit(state, circuitId, { nodes }));
+      },
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
-            edges: updatedEdges,
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
+      syncEdgesFromFlow: (circuitId: CircuitId, edges: CircuitEdge[]) => {
+        set(state => updateCircuit(state, circuitId, { edges }));
+      },
 
-  // Batch update actions (for React Flow integration)
-  syncNodesFromFlow: (circuitId: string, nodes: CircuitNode[]) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
+      // Selectors
+      getActiveCircuit: () => {
+        const state = get();
+        if (!state.activeCircuitId) return null;
+        return state.circuits[state.activeCircuitId] ?? null;
+      },
 
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
-            nodes,
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
-
-  syncEdgesFromFlow: (circuitId: string, edges: CircuitEdge[]) => {
-    set((state) => {
-      const circuit = state.circuits[circuitId];
-      if (!circuit) return state;
-
-      return {
-        circuits: {
-          ...state.circuits,
-          [circuitId]: {
-            ...circuit,
-            edges,
-            modifiedAt: Date.now(),
-          },
-        },
-      };
-    });
-  },
-
-  // Selectors
-  getActiveCircuit: () => {
-    const state = get();
-    if (!state.activeCircuitId) return null;
-    return state.circuits[state.activeCircuitId] ?? null;
-  },
-
-  getCircuitById: (id: string) => {
-    return get().circuits[id];
-  },
-}));
+      getCircuitById: (id: CircuitId) => {
+        return get().circuits[id];
+      },
+    }),
+    {
+      name: "circuit-storage",
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);

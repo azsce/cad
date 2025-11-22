@@ -5,6 +5,7 @@
 This document describes the technical design for a web-based circuit analysis application built with React, TypeScript, and Vite. The application enables users to visually design DC electrical circuits and automatically perform nodal and loop analysis using graph theory and matrix methods.
 
 The architecture follows a strict separation of concerns with three primary layers:
+
 1. **Presentation Layer**: React components for UI rendering and user interaction
 2. **State Management Layer**: Zustand store as the single source of truth for circuit data
 3. **Analysis Pipeline**: Three-stage context-based pipeline (Validation → Calculation → Presentation)
@@ -111,14 +112,14 @@ Located in `src/types/circuit.ts`:
 // Component-specific data
 export interface ComponentData {
   value: number;
-  direction?: 'up' | 'down' | 'left' | 'right';
+  direction?: "up" | "down" | "left" | "right";
   label?: string;
 }
 
 // A circuit component (maps to React Flow node)
 export interface CircuitNode {
   id: string;
-  type: 'resistor' | 'voltageSource' | 'currentSource' | 'ground';
+  type: "resistor" | "voltageSource" | "currentSource" | "ground";
   position: { x: number; y: number };
   data: ComponentData;
 }
@@ -148,7 +149,7 @@ export interface Circuit {
 Located in `src/types/analysis.ts`:
 
 ```typescript
-import { Matrix } from 'mathjs';
+import { Matrix } from "mathjs";
 
 // Pure graph representation for analysis
 export interface ElectricalNode {
@@ -158,7 +159,7 @@ export interface ElectricalNode {
 
 export interface Branch {
   id: string;
-  type: 'resistor' | 'voltageSource' | 'currentSource';
+  type: "resistor" | "voltageSource" | "currentSource";
   value: number;
   fromNodeId: string;
   toNodeId: string;
@@ -166,17 +167,17 @@ export interface Branch {
 
 export interface SpanningTree {
   id: string;
-  twigBranchIds: string[];      // Tree branches
-  linkBranchIds: string[];       // Co-tree branches (links)
-  description?: string;          // Optional description of this tree
+  twigBranchIds: string[]; // Tree branches
+  linkBranchIds: string[]; // Co-tree branches (links)
+  description?: string; // Optional description of this tree
 }
 
 export interface AnalysisGraph {
   nodes: ElectricalNode[];
   branches: Branch[];
   referenceNodeId: string;
-  allSpanningTrees: SpanningTree[];     // All possible spanning trees
-  selectedTreeId: string;                // Currently selected tree for analysis
+  allSpanningTrees: SpanningTree[]; // All possible spanning trees
+  selectedTreeId: string; // Currently selected tree for analysis
 }
 
 // Validation results
@@ -189,28 +190,28 @@ export interface ValidationResult {
 
 // Calculation results
 export interface CalculationResult {
-  method: 'nodal' | 'loop';
-  
+  method: "nodal" | "loop";
+
   // Input matrices and vectors
-  incidenceMatrix?: Matrix;        // A (for nodal/cut-set)
-  tieSetMatrix?: Matrix;            // B (for loop/tie-set)
-  branchImpedanceMatrix?: Matrix;   // ZB (diagonal)
-  branchAdmittanceMatrix?: Matrix;  // YB (diagonal)
-  branchVoltageSources?: Matrix;    // EB (vector)
-  branchCurrentSources?: Matrix;    // IB (vector)
-  
+  incidenceMatrix?: Matrix; // A (for nodal/cut-set)
+  tieSetMatrix?: Matrix; // B (for loop/tie-set)
+  branchImpedanceMatrix?: Matrix; // ZB (diagonal)
+  branchAdmittanceMatrix?: Matrix; // YB (diagonal)
+  branchVoltageSources?: Matrix; // EB (vector)
+  branchCurrentSources?: Matrix; // IB (vector)
+
   // Intermediate matrices
-  systemMatrix?: Matrix;            // A*YB*A^T or B*ZB*B^T
-  systemVector?: Matrix;            // RHS of system equation
-  
+  systemMatrix?: Matrix; // A*YB*A^T or B*ZB*B^T
+  systemVector?: Matrix; // RHS of system equation
+
   // Solution vectors
-  nodeVoltages?: Matrix;            // EN (for nodal)
-  loopCurrents?: Matrix;            // IL (for loop)
-  
+  nodeVoltages?: Matrix; // EN (for nodal)
+  loopCurrents?: Matrix; // IL (for loop)
+
   // Final results
-  branchVoltages: Matrix;           // VB
-  branchCurrents: Matrix;           // JB
-  
+  branchVoltages: Matrix; // VB
+  branchCurrents: Matrix; // JB
+
   // Metadata
   steps: AnalysisStep[];
 }
@@ -232,26 +233,26 @@ interface CircuitStore {
   // State
   circuits: Record<string, Circuit>;
   activeCircuitId: string | null;
-  
+
   // Circuit management actions
   createCircuit: (name?: string) => string;
   deleteCircuit: (id: string) => void;
   setActiveCircuit: (id: string) => void;
   updateCircuitName: (id: string, name: string) => void;
-  
+
   // Node/Edge manipulation actions
   addNode: (circuitId: string, node: CircuitNode) => void;
   updateNode: (circuitId: string, nodeId: string, updates: Partial<CircuitNode>) => void;
   deleteNode: (circuitId: string, nodeId: string) => void;
-  
+
   addEdge: (circuitId: string, edge: CircuitEdge) => void;
   updateEdge: (circuitId: string, edgeId: string, updates: Partial<CircuitEdge>) => void;
   deleteEdge: (circuitId: string, edgeId: string) => void;
-  
+
   // Batch updates (for React Flow integration)
   syncNodesFromFlow: (circuitId: string, nodes: CircuitNode[]) => void;
   syncEdgesFromFlow: (circuitId: string, edges: CircuitEdge[]) => void;
-  
+
   // Selectors
   getActiveCircuit: () => Circuit | null;
   getCircuitById: (id: string) => Circuit | undefined;
@@ -274,7 +275,7 @@ interface ThemeContextValue {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<'light' | 'dark'>('light');
-  
+
   const theme = useMemo(() => createTheme({
     palette: {
       mode,
@@ -282,7 +283,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       secondary: { main: '#dc004e' },
     },
   }), [mode]);
-  
+
   return (
     <ThemeContext.Provider value={{ mode, toggleTheme }}>
       <MuiThemeProvider theme={theme}>
@@ -295,6 +296,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 ```
 
 **Features**:
+
 - Wraps entire application with MUI ThemeProvider
 - Provides light and dark theme variants
 - Persists theme preference to localStorage
@@ -311,15 +313,15 @@ export function App() {
         <Panel defaultSize={20} minSize={15} maxSize={30}>
           <CircuitManagerPane />
         </Panel>
-        
+
         <PanelResizeHandle />
-        
+
         <Panel defaultSize={50} minSize={30}>
           <CircuitEditorPane />
         </Panel>
-        
+
         <PanelResizeHandle />
-        
+
         <Panel defaultSize={30} minSize={20}>
           <AnalysisPaneWrapper />
         </Panel>
@@ -332,6 +334,7 @@ export function App() {
 #### 2. Circuit Manager Pane (`src/components/CircuitManager/CircuitManagerPane.tsx`)
 
 **Responsibilities**:
+
 - Display list of all circuits
 - Create new circuits
 - Delete circuits
@@ -340,12 +343,14 @@ export function App() {
 - Toggle theme (light/dark mode)
 
 **Key Features**:
+
 - Subscribes to `circuits` and `activeCircuitId` from Zustand store
 - Calls store actions for circuit management
 - Highlights the active circuit
 - Shows circuit metadata (creation date, last modified)
 
 **MUI Components Used**:
+
 - `Box` for layout container
 - `List`, `ListItem`, `ListItemButton`, `ListItemText` for circuit list
 - `Button` for "New Circuit" action
@@ -359,6 +364,7 @@ export function App() {
 #### 3. Circuit Editor Pane (`src/components/CircuitEditor/CircuitEditorPane.tsx`)
 
 **Structure**:
+
 ```
 CircuitEditorPane
 ├── ComponentPalette (sidebar)
@@ -375,27 +381,29 @@ CircuitEditorPane
 ```
 
 **Responsibilities**:
+
 - Render the active circuit using React Flow
 - Handle drag-and-drop from component palette
 - Manage node/edge interactions (move, connect, delete)
 - Sync all changes back to Zustand store
 
 **React Flow Integration**:
+
 ```typescript
 const CircuitEditorPane = () => {
   const activeCircuit = useCircuitStore(state => state.getActiveCircuit());
   const syncNodes = useCircuitStore(state => state.syncNodesFromFlow);
   const syncEdges = useCircuitStore(state => state.syncEdgesFromFlow);
-  
+
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     // Apply changes to local state
     const updatedNodes = applyNodeChanges(changes, activeCircuit.nodes);
     // Sync back to store
     syncNodes(activeCircuit.id, updatedNodes);
   }, [activeCircuit, syncNodes]);
-  
+
   // Similar for edges...
-  
+
   return (
     <ReactFlow
       nodes={activeCircuit?.nodes ?? []}
@@ -412,6 +420,7 @@ const CircuitEditorPane = () => {
 #### 4. Custom Nodes
 
 **ResistorNode** (`src/components/CircuitEditor/nodes/ResistorNode.tsx`):
+
 - SVG representation of resistor symbol
 - Two handles (left and right terminals)
 - Inline editable resistance value using MUI `TextField`
@@ -419,6 +428,7 @@ const CircuitEditorPane = () => {
 - MUI `Tooltip` for component information
 
 **VoltageSourceNode** (`src/components/CircuitEditor/nodes/VoltageSourceNode.tsx`):
+
 - SVG representation with polarity indicators
 - Two handles (top and bottom terminals)
 - Direction toggle using MUI `IconButton` (rotates polarity)
@@ -426,6 +436,7 @@ const CircuitEditorPane = () => {
 - MUI `Tooltip` for component information
 
 **CurrentSourceNode** (`src/components/CircuitEditor/nodes/CurrentSourceNode.tsx`):
+
 - SVG representation with arrow indicator
 - Two handles
 - Direction toggle using MUI `IconButton`
@@ -435,14 +446,15 @@ const CircuitEditorPane = () => {
 #### 5. Analysis Pane Wrapper (`src/components/AnalysisPane/AnalysisPaneWrapper.tsx`)
 
 **Structure**:
+
 ```typescript
 const AnalysisPaneWrapper = () => {
   const activeCircuit = useCircuitStore(state => state.getActiveCircuit());
-  
+
   if (!activeCircuit) {
     return <EmptyState message="No circuit selected" />;
   }
-  
+
   return (
     <AnalysisProvider circuit={activeCircuit}>
       <MatrixCalculationProvider>
@@ -458,6 +470,7 @@ const AnalysisPaneWrapper = () => {
 **AnalysisPane** (`src/components/AnalysisPane/AnalysisPane.tsx`):
 
 **Complete Layout Structure**:
+
 ```
 AnalysisPane (Vertical Split)
 ├── Top Section (40% height)
@@ -486,6 +499,7 @@ AnalysisPane (Vertical Split)
 ```
 
 **Interaction Flow**:
+
 1. User selects analysis method and spanning tree
 2. User clicks "Run Analysis"
 3. Top section shows graph with selected tree highlighted
@@ -495,6 +509,7 @@ AnalysisPane (Vertical Split)
 7. Final results mode shows branch currents/voltages overlaid on graph
 
 **Features**:
+
 - Synchronized highlighting between graph and equations
 - Color-coded loops and cut-sets for easy identification
 - Resizable split between graph and results
@@ -518,6 +533,7 @@ The analysis pipeline is implemented as three nested React Context providers, ea
 **Trigger Behavior**: The validation layer automatically re-runs whenever the active circuit changes (per Requirement 10). This provides immediate feedback on circuit validity without requiring user action.
 
 **Process**:
+
 1. Convert `CircuitNode[]` and `CircuitEdge[]` to `ElectricalNode[]` and `Branch[]`
 2. Identify unique electrical connection points
 3. Select reference (ground) node
@@ -530,6 +546,7 @@ The analysis pipeline is implemented as three nested React Context providers, ea
 6. Select default spanning tree (typically using BFS/DFS from reference node)
 
 **Context State**:
+
 ```typescript
 interface ValidationContextState {
   analysisGraph: AnalysisGraph | null;
@@ -546,11 +563,13 @@ interface ValidationContextState {
 **Output**: `CalculationResult`
 
 **Trigger Behavior**: Unlike validation, calculation is **manually triggered** by the user clicking "Run Analysis" button. This design decision balances Requirement 10 (automatic pipeline) with performance considerations:
+
 - **Validation runs automatically**: Provides immediate feedback on circuit validity
 - **Calculation runs on-demand**: Prevents expensive matrix operations on every edit
 - **Rationale**: Matrix solving is O(n³) and should only run when the user wants to see results
 
 **Process**:
+
 1. Check if graph is solvable (from Layer 1)
 2. Based on selected method:
    - **Nodal Analysis (Cut-Set Method)**:
@@ -558,20 +577,21 @@ interface ValidationContextState {
      - Build branch admittance matrix (YB) - diagonal matrix
      - Build branch voltage source vector (EB)
      - Build branch current source vector (IB)
-     - Solve (A * YB * A^T) * EN = A * (IB - YB * EB) for node voltages
-     - Calculate branch voltages: VB = A^T * EN
-     - Calculate branch currents: JB = YB * VB + YB * EB - IB
+     - Solve (A _ YB _ A^T) _ EN = A _ (IB - YB \* EB) for node voltages
+     - Calculate branch voltages: VB = A^T \* EN
+     - Calculate branch currents: JB = YB _ VB + YB _ EB - IB
    - **Loop Analysis (Tie-Set Method)**:
      - Build tie-set matrix (B) - one row per fundamental loop
      - Build branch impedance matrix (ZB) - diagonal matrix
      - Build branch voltage source vector (EB)
      - Build branch current source vector (IB)
-     - Solve (B * ZB * B^T) * IL = B * EB - B * ZB * IB for loop currents
-     - Calculate branch currents: JB = B^T * IL
-     - Calculate branch voltages: VB = ZB * (JB + IB) - EB
+     - Solve (B _ ZB _ B^T) _ IL = B _ EB - B _ ZB _ IB for loop currents
+     - Calculate branch currents: JB = B^T \* IL
+     - Calculate branch voltages: VB = ZB \* (JB + IB) - EB
 3. Record each step for presentation
 
 **Context State**:
+
 ```typescript
 interface CalculationContextState {
   result: CalculationResult | null;
@@ -590,6 +610,7 @@ interface CalculationContextState {
 **Trigger Behavior**: Automatically runs whenever calculation results are available. This is lightweight (string formatting) and provides immediate presentation updates.
 
 **Process**:
+
 1. Generate report header with circuit name and method
 2. For each analysis step:
    - Add step title and description
@@ -604,6 +625,7 @@ interface CalculationContextState {
    - Prepare highlighting data for interactive graph
 
 **Context State**:
+
 ```typescript
 interface PresentationContextState {
   markdownOutput: string;
@@ -612,8 +634,8 @@ interface PresentationContextState {
 }
 
 interface GraphVisualizationData {
-  mode: 'graph' | 'tree' | 'loops' | 'cutsets' | 'results';
-  highlightedElements: string[];  // IDs of nodes/edges to highlight
+  mode: "graph" | "tree" | "loops" | "cutsets" | "results";
+  highlightedElements: string[]; // IDs of nodes/edges to highlight
   loopDefinitions?: LoopDefinition[];
   cutSetDefinitions?: CutSetDefinition[];
   branchResults?: Map<string, { current: number; voltage: number }>;
@@ -622,7 +644,7 @@ interface GraphVisualizationData {
 interface LoopDefinition {
   id: string;
   branchIds: string[];
-  direction: Map<string, 'forward' | 'reverse'>;
+  direction: Map<string, "forward" | "reverse">;
   color: string;
   equation: string;
 }
@@ -630,7 +652,7 @@ interface LoopDefinition {
 interface CutSetDefinition {
   id: string;
   branchIds: string[];
-  direction: Map<string, 'forward' | 'reverse'>;
+  direction: Map<string, "forward" | "reverse">;
   color: string;
   equation: string;
 }
@@ -643,6 +665,7 @@ interface CutSetDefinition {
 **Purpose**: Render the circuit graph with visual overlays for spanning trees, loops, and cut-sets using Cytoscape.js.
 
 **Design Philosophy**: The visualization follows academic conventions from the CAD lecture materials (see `docs/lecturesImages/`):
+
 - Uses directed graphs (oriented graphs) with arrows on all branches
 - Follows standard notation: nodes (n0, n1, ...), branches (a, b, c, ...)
 - Clearly distinguishes between tree branches (twigs) and links (co-tree)
@@ -651,11 +674,13 @@ interface CutSetDefinition {
 
 **Visual Style Reference**:
 The implementation should reference the actual graph diagrams in:
+
 - `docs/lecturesImages/CAD_Lec_01/` - Graph theory concepts, trees, co-trees
 - `docs/lecturesImages/CAD_Lec_02/` - Incidence matrices, tie-set matrices, cut-set matrices
 - `docs/lecturesImages/CAD_Lec_03/` - Loop and nodal analysis examples
 
 Key visual elements to match:
+
 - Node representation (circles with labels)
 - Branch representation (directed edges with arrows)
 - Tree vs. link distinction (solid vs. dashed, or different colors)
@@ -664,6 +689,7 @@ Key visual elements to match:
 - Label placement and formatting
 
 **Why Cytoscape.js?**
+
 - Specialized for graph/network visualization
 - Automatic graph layout algorithms (breadthfirst, circle, grid, cose)
 - Easy styling and highlighting of nodes/edges
@@ -712,127 +738,127 @@ Key visual elements to match:
 const cytoscapeStylesheet: cytoscape.Stylesheet[] = [
   // Node styles - circles with labels (n0, n1, n2, ...)
   {
-    selector: 'node',
+    selector: "node",
     style: {
-      'background-color': '#4A90E2',
-      'label': 'data(label)',
-      'text-valign': 'center',
-      'text-halign': 'center',
-      'font-size': '14px',
-      'font-weight': 'bold',
-      'color': '#000',
-      'width': '40px',
-      'height': '40px',
-      'border-width': '2px',
-      'border-color': '#2E5C8A'
-    }
+      "background-color": "#4A90E2",
+      label: "data(label)",
+      "text-valign": "center",
+      "text-halign": "center",
+      "font-size": "14px",
+      "font-weight": "bold",
+      color: "#000",
+      width: "40px",
+      height: "40px",
+      "border-width": "2px",
+      "border-color": "#2E5C8A",
+    },
   },
   {
-    selector: 'node.reference',
+    selector: "node.reference",
     style: {
-      'background-color': '#000',
-      'border-color': '#000',
-      'color': '#fff',
-      'shape': 'triangle',  // Ground symbol
-      'label': 'data(label) + " (ref)"'
-    }
+      "background-color": "#000",
+      "border-color": "#000",
+      color: "#fff",
+      shape: "triangle", // Ground symbol
+      label: 'data(label) + " (ref)"',
+    },
   },
   // Edge styles - directed with arrows
   {
-    selector: 'edge',
+    selector: "edge",
     style: {
-      'width': 3,
-      'line-color': '#333',
-      'target-arrow-color': '#333',
-      'target-arrow-shape': 'triangle',
-      'target-arrow-size': '10px',
-      'curve-style': 'bezier',
-      'label': 'data(label)',
-      'font-size': '11px',
-      'text-rotation': 'autorotate',
-      'text-margin-y': -10
-    }
+      width: 3,
+      "line-color": "#333",
+      "target-arrow-color": "#333",
+      "target-arrow-shape": "triangle",
+      "target-arrow-size": "10px",
+      "curve-style": "bezier",
+      label: "data(label)",
+      "font-size": "11px",
+      "text-rotation": "autorotate",
+      "text-margin-y": -10,
+    },
   },
   // Spanning tree visualization
   {
-    selector: 'edge.twig',
+    selector: "edge.twig",
     style: {
-      'line-color': '#27AE60',  // Green for tree branches
-      'target-arrow-color': '#27AE60',
-      'width': 5,
-      'line-style': 'solid'
-    }
+      "line-color": "#27AE60", // Green for tree branches
+      "target-arrow-color": "#27AE60",
+      width: 5,
+      "line-style": "solid",
+    },
   },
   {
-    selector: 'edge.link',
+    selector: "edge.link",
     style: {
-      'line-color': '#E74C3C',  // Red for links (co-tree)
-      'target-arrow-color': '#E74C3C',
-      'width': 4,
-      'line-style': 'dashed'
-    }
+      "line-color": "#E74C3C", // Red for links (co-tree)
+      "target-arrow-color": "#E74C3C",
+      width: 4,
+      "line-style": "dashed",
+    },
   },
   // Fundamental loop highlighting (one color per loop)
   {
-    selector: 'edge.loop-0',
+    selector: "edge.loop-0",
     style: {
-      'line-color': '#E74C3C',
-      'target-arrow-color': '#E74C3C',
-      'width': 6
-    }
+      "line-color": "#E74C3C",
+      "target-arrow-color": "#E74C3C",
+      width: 6,
+    },
   },
   {
-    selector: 'edge.loop-1',
+    selector: "edge.loop-1",
     style: {
-      'line-color': '#9B59B6',
-      'target-arrow-color': '#9B59B6',
-      'width': 6
-    }
+      "line-color": "#9B59B6",
+      "target-arrow-color": "#9B59B6",
+      width: 6,
+    },
   },
   {
-    selector: 'edge.loop-2',
+    selector: "edge.loop-2",
     style: {
-      'line-color': '#F39C12',
-      'target-arrow-color': '#F39C12',
-      'width': 6
-    }
+      "line-color": "#F39C12",
+      "target-arrow-color": "#F39C12",
+      width: 6,
+    },
   },
   {
-    selector: 'edge.loop-3',
+    selector: "edge.loop-3",
     style: {
-      'line-color': '#1ABC9C',
-      'target-arrow-color': '#1ABC9C',
-      'width': 6
-    }
+      "line-color": "#1ABC9C",
+      "target-arrow-color": "#1ABC9C",
+      width: 6,
+    },
   },
   // Cut-set highlighting
   {
-    selector: 'edge.cutset-0',
+    selector: "edge.cutset-0",
     style: {
-      'line-color': '#3498DB',
-      'target-arrow-color': '#3498DB',
-      'width': 6
-    }
+      "line-color": "#3498DB",
+      "target-arrow-color": "#3498DB",
+      width: 6,
+    },
   },
   {
-    selector: 'edge.cutset-1',
+    selector: "edge.cutset-1",
     style: {
-      'line-color': '#E67E22',
-      'target-arrow-color': '#E67E22',
-      'width': 6
-    }
+      "line-color": "#E67E22",
+      "target-arrow-color": "#E67E22",
+      width: 6,
+    },
   },
   // ... more cut-set colors
 ];
 
 const cytoscapeLayout = {
-  name: 'breadthfirst',  // Hierarchical layout from reference node
+  name: "breadthfirst", // Hierarchical layout from reference node
   directed: true,
-  roots: '#n0',  // Start from reference node
+  roots: "#n0", // Start from reference node
   spacingFactor: 1.75,
   animate: true,
   animationDuration: 500,
-  padding: 30
+  padding: 30,
 };
 ```
 
@@ -841,64 +867,61 @@ const cytoscapeLayout = {
 ```typescript
 function convertToCytoscapeElements(
   graph: AnalysisGraph,
-  mode: 'graph' | 'tree' | 'loops' | 'cutsets'
+  mode: "graph" | "tree" | "loops" | "cutsets"
 ): cytoscape.ElementDefinition[] {
   // Nodes: labeled as n0, n1, n2, ... (matching lecture notation)
   const nodes = graph.nodes.map((node, index) => ({
     data: {
       id: node.id,
-      label: `n${index}`  // Standard notation from lectures
+      label: `n${index}`, // Standard notation from lectures
     },
-    classes: node.id === graph.referenceNodeId ? 'reference' : ''
+    classes: node.id === graph.referenceNodeId ? "reference" : "",
   }));
-  
+
   // Edges: labeled as a, b, c, ... with component info (matching lecture notation)
   const edges = graph.branches.map((branch, index) => {
-    const branchLabel = String.fromCharCode(97 + index);  // a, b, c, ...
+    const branchLabel = String.fromCharCode(97 + index); // a, b, c, ...
     const componentInfo = formatComponentInfo(branch);
-    
+
     // Determine edge classes based on visualization mode
-    let classes = '';
-    if (mode === 'tree') {
-      const selectedTree = graph.allSpanningTrees.find(
-        t => t.id === graph.selectedTreeId
-      );
+    let classes = "";
+    if (mode === "tree") {
+      const selectedTree = graph.allSpanningTrees.find(t => t.id === graph.selectedTreeId);
       if (selectedTree) {
-        classes = selectedTree.twigBranchIds.includes(branch.id) 
-          ? 'twig' 
-          : 'link';
+        classes = selectedTree.twigBranchIds.includes(branch.id) ? "twig" : "link";
       }
     }
-    
+
     return {
       data: {
         id: branch.id,
         source: branch.fromNodeId,
         target: branch.toNodeId,
-        label: `${branchLabel}\n${componentInfo}`
+        label: `${branchLabel}\n${componentInfo}`,
       },
-      classes
+      classes,
     };
   });
-  
+
   return [...nodes, ...edges];
 }
 
 function formatComponentInfo(branch: Branch): string {
   switch (branch.type) {
-    case 'resistor':
+    case "resistor":
       return `${branch.value}Ω`;
-    case 'voltageSource':
+    case "voltageSource":
       return `${branch.value}V`;
-    case 'currentSource':
+    case "currentSource":
       return `${branch.value}A`;
     default:
-      return '';
+      return "";
   }
 }
 ```
 
 **Key Conventions from Lectures**:
+
 - Nodes labeled as n0, n1, n2, ... (not arbitrary IDs)
 - Branches labeled as a, b, c, ... (alphabetical)
 - Reference node (typically n0) marked with ground symbol
@@ -909,6 +932,7 @@ function formatComponentInfo(branch: Branch): string {
 **Important**: The exact colors, line styles, and visual appearance should be finalized during implementation by referencing the actual lecture images in `docs/lecturesImages/`. The configuration above provides a starting point that follows general academic conventions, but should be adjusted to match the specific style used in the course materials.
 
 **Loop Visualization** (Fundamental Loops / Tie-Sets):
+
 - Each fundamental loop is defined by exactly one link
 - Loop direction follows the link's direction
 - All branches in the loop are highlighted in the same color
@@ -917,6 +941,7 @@ function formatComponentInfo(branch: Branch): string {
 - Loop equation displayed: sum of voltages around loop = 0
 
 **Cut-Set Visualization** (Fundamental Cut-Sets):
+
 - Each fundamental cut-set is defined by exactly one twig (tree branch)
 - Cut-set separates the graph into two parts
 - All branches crossing the cut are highlighted in the same color
@@ -924,6 +949,7 @@ function formatComponentInfo(branch: Branch): string {
 - Cut-set equation displayed: sum of currents through cut = 0
 
 **Interactive Features**:
+
 - Click on a loop/cut-set in the list to highlight it in the graph
 - Hover over branches to see component details and current/voltage values
 - Hover over nodes to see node voltage (for nodal analysis)
@@ -939,14 +965,15 @@ All pure mathematical and graph operations are implemented as utility functions 
 #### `graphTransformer.ts`
 
 ```typescript
-export function createAnalysisGraph(circuit: Circuit): AnalysisGraph
-export function findAllSpanningTrees(graph: AnalysisGraph): SpanningTree[]
-export function selectSpanningTree(graph: AnalysisGraph, treeId: string): AnalysisGraph
+export function createAnalysisGraph(circuit: Circuit): AnalysisGraph;
+export function findAllSpanningTrees(graph: AnalysisGraph): SpanningTree[];
+export function selectSpanningTree(graph: AnalysisGraph, treeId: string): AnalysisGraph;
 ```
 
 **Circuit to Graph Conversion** (Following Lecture Algorithm):
 
 The conversion follows the algorithm from Lecture 1:
+
 1. Identify all principal nodes in the circuit (connection points)
 2. Replace passive elements (resistors) and voltage sources with short circuits (lines)
 3. Replace current sources with open circuits (remove them temporarily)
@@ -954,6 +981,7 @@ The conversion follows the algorithm from Lecture 1:
 5. Restore all components as directed branches with proper orientation
 
 **Implementation Details**:
+
 - Converts UI circuit model to pure graph representation
 - Identifies electrical nodes from edge connections
 - Maps components to branches with direction (arrows)
@@ -967,8 +995,9 @@ The conversion follows the algorithm from Lecture 1:
 #### `validation.ts`
 
 ```typescript
-export function validateGraph(graph: AnalysisGraph): ValidationResult
+export function validateGraph(graph: AnalysisGraph): ValidationResult;
 ```
+
 - Checks graph connectivity using BFS
 - Validates presence of sources
 - Detects voltage-source-only loops
@@ -978,17 +1007,18 @@ export function validateGraph(graph: AnalysisGraph): ValidationResult
 #### `nodalAnalysis.ts`
 
 ```typescript
-export function buildIncidenceMatrix(graph: AnalysisGraph): Matrix
-export function buildBranchAdmittanceMatrix(graph: AnalysisGraph): Matrix
+export function buildIncidenceMatrix(graph: AnalysisGraph): Matrix;
+export function buildBranchAdmittanceMatrix(graph: AnalysisGraph): Matrix;
 export function solveNodalEquations(
   A: Matrix,
   YB: Matrix,
   EB: Matrix,
   IB: Matrix
-): { EN: Matrix; JB: Matrix; VB: Matrix }
+): { EN: Matrix; JB: Matrix; VB: Matrix };
 ```
 
 **Incidence Matrix Construction** (Reduced Incidence Matrix):
+
 - Rows: Non-reference nodes (N-1)
 - Columns: Branches (B)
 - A[i][j] = +1 if branch j current is leaving node i
@@ -997,27 +1027,29 @@ export function solveNodalEquations(
 - Reference node row is omitted (typically node 0)
 
 **Solution Process** (Using Cut-Set Matrix C = A):
+
 1. Build branch admittance matrix YB (diagonal matrix)
-2. Build node admittance matrix: Y_node = C * YB * C^T (which equals A * YB * A^T)
-3. Build current source vector: I_node = C * (IB - YB * EB) (which equals A * (IB - YB * EB))
+2. Build node admittance matrix: Y*node = C * YB _ C^T (which equals A _ YB \_ A^T)
+3. Build current source vector: I*node = C * (IB - YB _ EB) (which equals A _ (IB - YB \_ EB))
 4. Solve for node voltages: EN = solve(Y_node, I_node) using `math.lusolve()`
-5. Calculate branch voltages: VB = C^T * EN (which equals A^T * EN)
-6. Calculate branch currents: JB = YB * VB + YB * EB - IB
+5. Calculate branch voltages: VB = C^T _ EN (which equals A^T _ EN)
+6. Calculate branch currents: JB = YB _ VB + YB _ EB - IB
 
 #### `loopAnalysis.ts`
 
 ```typescript
-export function buildTieSetMatrix(graph: AnalysisGraph): Matrix
-export function buildBranchImpedanceMatrix(graph: AnalysisGraph): Matrix
+export function buildTieSetMatrix(graph: AnalysisGraph): Matrix;
+export function buildBranchImpedanceMatrix(graph: AnalysisGraph): Matrix;
 export function solveLoopEquations(
   B: Matrix,
   ZB: Matrix,
   EB: Matrix,
   IB: Matrix
-): { IL: Matrix; JB: Matrix; VB: Matrix }
+): { IL: Matrix; JB: Matrix; VB: Matrix };
 ```
 
 **Tie-Set Matrix Construction** (Fundamental Loop Matrix):
+
 - Rows: Links (L = B - N + 1), one row per fundamental loop
 - Columns: Branches (B)
 - For each link, trace the fundamental loop through the spanning tree
@@ -1027,43 +1059,35 @@ export function solveLoopEquations(
 - B[i][j] = 0 if branch j is not part of loop i
 
 **Solution Process**:
+
 1. Build branch impedance matrix ZB (diagonal matrix)
-2. Build loop impedance matrix: Z_loop = B * ZB * B^T
-3. Build voltage source vector: E_loop = B * EB - B * ZB * IB
+2. Build loop impedance matrix: Z*loop = B * ZB \_ B^T
+3. Build voltage source vector: E*loop = B * EB - B \_ ZB \* IB
 4. Solve for loop currents: IL = solve(Z_loop, E_loop) using `math.lusolve()`
-5. Calculate branch currents: JB = B^T * IL
-6. Calculate branch voltages: VB = ZB * (JB + IB) - EB
+5. Calculate branch currents: JB = B^T \* IL
+6. Calculate branch voltages: VB = ZB \* (JB + IB) - EB
 
 #### `reportGenerator.ts`
 
 ```typescript
-export function matrixToLatex(matrix: Matrix): string
-export function generateMarkdownReport(
-  result: CalculationResult,
-  graph: AnalysisGraph
-): string
-export function generateLoopDescription(
-  loopIndex: number,
-  graph: AnalysisGraph
-): string
-export function generateCutSetDescription(
-  cutSetIndex: number,
-  graph: AnalysisGraph
-): string
+export function matrixToLatex(matrix: Matrix): string;
+export function generateMarkdownReport(result: CalculationResult, graph: AnalysisGraph): string;
+export function generateLoopDescription(loopIndex: number, graph: AnalysisGraph): string;
+export function generateCutSetDescription(cutSetIndex: number, graph: AnalysisGraph): string;
 ```
 
 **LaTeX Matrix Formatting**:
+
 ```typescript
 function matrixToLatex(matrix: Matrix): string {
   const data = matrix.toArray();
-  const rows = data.map(row => 
-    row.map(val => val.toFixed(3)).join(' & ')
-  ).join(' \\\\ ');
+  const rows = data.map(row => row.map(val => val.toFixed(3)).join(" & ")).join(" \\\\ ");
   return `\\begin{pmatrix} ${rows} \\end{pmatrix}`;
 }
 ```
 
 **Loop/Cut-Set Descriptions**:
+
 - Generate human-readable descriptions of each fundamental loop
 - Generate descriptions of each fundamental cut-set
 - Used in both the markdown report and graph visualization tooltips
@@ -1075,6 +1099,7 @@ function matrixToLatex(matrix: Matrix): string {
 The application uses two different graph visualization libraries for different purposes:
 
 **1. React Flow (Circuit Editor Pane)**:
+
 - **Purpose**: Interactive circuit schematic editor
 - **Use Case**: Drag-and-drop component placement, wire connections
 - **Representation**: Visual circuit diagram with component symbols
@@ -1082,6 +1107,7 @@ The application uses two different graph visualization libraries for different p
 - **Data**: Synchronized with Zustand store (Circuit model)
 
 **2. Cytoscape.js (Analysis Pane)**:
+
 - **Purpose**: Abstract graph visualization for analysis
 - **Use Case**: Display topology, spanning trees, loops, cut-sets
 - **Representation**: Graph theory representation (nodes and edges)
@@ -1095,7 +1121,7 @@ Circuit Model (Zustand)
     ↓
 React Flow Canvas
     └─ Visual circuit schematic
-    
+
 Circuit Model (Zustand)
     ↓
 ValidationContext
@@ -1165,17 +1191,20 @@ AnalysisPane (React Component)
 ### Validation Errors
 
 **Disconnected Circuit**:
+
 ```
 Error: Circuit contains isolated components
 Details: Nodes [n3, n4] are not connected to the main circuit
 ```
 
 **Missing Sources**:
+
 ```
 Error: Circuit must contain at least one voltage or current source
 ```
 
 **Voltage Source Loop**:
+
 ```
 Error: Loop detected containing only voltage sources
 Loop: V1 → V2 → V3 → V1
@@ -1183,6 +1212,7 @@ This creates a contradiction in KVL
 ```
 
 **Current Source Cut-Set**:
+
 ```
 Error: Cut-set detected containing only current sources
 Cut-set: {I1, I2}
@@ -1192,6 +1222,7 @@ This creates a contradiction in KCL
 ### Calculation Errors
 
 **Singular Matrix**:
+
 ```
 Error: System of equations is singular (cannot be solved)
 Possible causes:
@@ -1201,6 +1232,7 @@ Possible causes:
 ```
 
 **Numerical Instability**:
+
 ```
 Warning: Solution may be numerically unstable
 Condition number: 1.2e15
@@ -1218,18 +1250,21 @@ Consider checking component values for extreme ratios
 ### Unit Tests
 
 **Store Tests** (`src/store/__tests__/circuitStore.test.ts`):
+
 - Circuit CRUD operations
 - Node/Edge manipulation
 - Active circuit selection
 - State immutability
 
 **Utility Function Tests** (`src/analysis/utils/__tests__/`):
+
 - Graph transformation correctness
 - Matrix construction accuracy
 - Validation logic coverage
 - Calculation correctness with known circuits
 
 **Component Tests** (`src/components/__tests__/`):
+
 - Custom node rendering
 - User interactions (drag, connect, edit)
 - Store integration
@@ -1237,11 +1272,13 @@ Consider checking component values for extreme ratios
 ### Integration Tests
 
 **Analysis Pipeline Tests**:
+
 - End-to-end flow from Circuit to Markdown output
 - Error propagation through contexts
 - Context re-computation on circuit changes
 
 **React Flow Integration Tests**:
+
 - Drag-and-drop functionality
 - Node connection creation
 - Store synchronization
@@ -1249,6 +1286,7 @@ Consider checking component values for extreme ratios
 ### Test Data
 
 Create a library of reference circuits with known solutions:
+
 - Simple voltage divider (2 resistors, 1 voltage source)
 - Current divider (2 resistors, 1 current source)
 - Bridge circuit (Wheatstone bridge)
@@ -1256,6 +1294,7 @@ Create a library of reference circuits with known solutions:
 - Multi-node circuit (4+ nodes)
 
 Each test circuit includes:
+
 - Circuit definition (nodes, edges)
 - Expected AnalysisGraph
 - Expected matrices (A, B, ZB, YB)
@@ -1291,6 +1330,7 @@ Before finalizing the graph visualization implementation, verify against lecture
    - Ensure readability matches lecture materials
 
 **Implementation Note**: During the implementation phase, the developer should:
+
 - Open the lecture images in `docs/lecturesImages/`
 - Match colors, line styles, and visual conventions exactly
 - Ensure the Cytoscape.js configuration produces similar-looking graphs
@@ -1298,6 +1338,7 @@ Before finalizing the graph visualization implementation, verify against lecture
 ### Manual Testing Checklist
 
 **Circuit Editor Tests**:
+
 - [ ] Create multiple circuits and switch between them
 - [ ] Drag components from palette to canvas
 - [ ] Connect components with wires
@@ -1306,12 +1347,14 @@ Before finalizing the graph visualization implementation, verify against lecture
 - [ ] Resize panes and verify layout
 
 **Analysis Tests**:
+
 - [ ] Run analysis on valid circuit
 - [ ] Verify step-by-step output formatting
 - [ ] Test error cases (disconnected, no sources, etc.)
 - [ ] Verify LaTeX rendering in output
 
 **Visualization Tests**:
+
 - [ ] Verify circuit graph appears in Cytoscape view
 - [ ] Switch between different spanning trees
 - [ ] Verify twigs and links are highlighted correctly
@@ -1352,17 +1395,20 @@ Before finalizing the graph visualization implementation, verify against lecture
 ### Scalability Limits
 
 Expected performance for circuits with:
+
 - Up to 50 nodes: Instant analysis (<100ms)
 - 50-100 nodes: Fast analysis (<500ms)
 - 100-200 nodes: Acceptable analysis (<2s)
 - 200+ nodes: May require optimization or progress indicator
 
 Matrix operations scale as O(n³) for solving, so very large circuits may need:
+
 - Sparse matrix implementations
 - Iterative solvers instead of direct methods
 - Web Worker for background calculation
 
 **Spanning Tree Enumeration**:
+
 - Number of spanning trees grows exponentially with circuit complexity
 - For circuits with many loops (>5), enumerate only a subset of trees
 - Provide option to use default tree (BFS-based) for quick analysis
@@ -1415,35 +1461,43 @@ Matrix operations scale as O(n³) for solving, so very large circuits may need:
 Based on the CAD lecture materials, the following formulations are used:
 
 **Network Topology Matrix Relationships**:
+
 - CL = -BT^t (relationship between cut-set and tie-set matrices)
-- CL = AT^-1 * AL (relationship using incidence matrix partitions)
-- C = AT^-1 * A (full relationship)
+- CL = AT^-1 \* AL (relationship using incidence matrix partitions)
+- C = AT^-1 \* A (full relationship)
 
 **KCL and KVL Using Matrices**:
-- KCL: A * JB = 0 (using reduced incidence matrix)
-- KVL: B * VB = 0 (using tie-set matrix)
+
+- KCL: A \* JB = 0 (using reduced incidence matrix)
+- KVL: B \* VB = 0 (using tie-set matrix)
 
 **Branch-Loop Current Relationship**:
-- JB = B^T * IL (branch currents from loop currents)
+
+- JB = B^T \* IL (branch currents from loop currents)
 
 **Branch-Node Voltage Relationship**:
-- VB = C^T * EN (branch voltages from node voltages)
-- For nodal analysis using incidence matrix: VB = A^T * EN
+
+- VB = C^T \* EN (branch voltages from node voltages)
+- For nodal analysis using incidence matrix: VB = A^T \* EN
 
 **Branch Equilibrium Equations**:
+
 1. Impedance Form: VB = ZB(JB + IB) - EB
 2. Admittance Form: JB = YB*VB + YB*EB - IB
 
 **Loop (Tie-Set) Analysis Final Equation**:
-- B * ZB * B^T * IL = B * EB - B * ZB * IB
+
+- B _ ZB _ B^T _ IL = B _ EB - B _ ZB _ IB
 - Where IL is the vector of unknown loop currents
 
 **Nodal (Cut-Set) Analysis Final Equation**:
-- C * YB * C^T * EN = C * (IB - YB * EB)
-- For implementation using incidence matrix: A * YB * A^T * EN = A * (IB - YB * EB)
+
+- C _ YB _ C^T _ EN = C _ (IB - YB \* EB)
+- For implementation using incidence matrix: A _ YB _ A^T _ EN = A _ (IB - YB \* EB)
 - Where EN is the vector of unknown node voltages
 
 **Important Notes**:
+
 - The reduced incidence matrix A has the reference node row removed
 - ZB and YB are diagonal matrices containing branch impedances and admittances
 - EB is the vector of branch voltage sources
@@ -1454,19 +1508,19 @@ Based on the CAD lecture materials, the following formulations are used:
 
 This section maps each requirement from the requirements document to the corresponding design components:
 
-| Requirement | Design Components | Notes |
-|-------------|------------------|-------|
-| **Req 1: Circuit Visual Editor** | `CircuitEditorPane`, React Flow integration, custom nodes, `circuitStore` actions | Drag-and-drop, wire connections, component movement |
-| **Req 2: Component Library** | `ComponentPalette`, `ResistorNode`, `VoltageSourceNode`, `CurrentSourceNode` | Three component types with inline editing using MUI TextField |
-| **Req 3: Multi-Circuit Management** | `CircuitManagerPane`, `circuitStore` (circuits record, activeCircuitId) | CRUD operations for circuits using MUI List and Button components |
-| **Req 4: Circuit Validation** | `ValidationContext`, `validation.ts` utilities | Connectivity, source presence, loop/cut-set checks |
-| **Req 5: Nodal Analysis** | `CalculationContext`, `nodalAnalysis.ts`, incidence matrix construction | Cut-set method with A*YB*A^T formulation |
-| **Req 6: Loop Analysis** | `CalculationContext`, `loopAnalysis.ts`, tie-set matrix construction | Fundamental loops with B*ZB*B^T formulation |
-| **Req 7: Step-by-Step Presentation** | `PresentationContext`, `reportGenerator.ts`, react-markdown + KaTeX | LaTeX matrices, formatted equations, Markdown structure |
-| **Req 8: Centralized State** | Zustand `circuitStore`, controlled React Flow | Single source of truth, no local React Flow state |
-| **Req 9: Three-Pane Layout** | `App.tsx`, react-resizable-panels, `PanelGroup` | Resizable panes with min/max constraints |
-| **Req 10: Pipeline Architecture** | Three nested contexts: `ValidationContext` → `CalculationContext` → `PresentationContext` | Validation auto-runs, calculation on-demand, presentation auto-runs |
-| **Req 11: Theme System** | `ThemeContext`, MUI ThemeProvider, theme toggle in `CircuitManagerPane` | Light/dark mode with localStorage persistence |
+| Requirement                          | Design Components                                                                         | Notes                                                               |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Req 1: Circuit Visual Editor**     | `CircuitEditorPane`, React Flow integration, custom nodes, `circuitStore` actions         | Drag-and-drop, wire connections, component movement                 |
+| **Req 2: Component Library**         | `ComponentPalette`, `ResistorNode`, `VoltageSourceNode`, `CurrentSourceNode`              | Three component types with inline editing using MUI TextField       |
+| **Req 3: Multi-Circuit Management**  | `CircuitManagerPane`, `circuitStore` (circuits record, activeCircuitId)                   | CRUD operations for circuits using MUI List and Button components   |
+| **Req 4: Circuit Validation**        | `ValidationContext`, `validation.ts` utilities                                            | Connectivity, source presence, loop/cut-set checks                  |
+| **Req 5: Nodal Analysis**            | `CalculationContext`, `nodalAnalysis.ts`, incidence matrix construction                   | Cut-set method with A*YB*A^T formulation                            |
+| **Req 6: Loop Analysis**             | `CalculationContext`, `loopAnalysis.ts`, tie-set matrix construction                      | Fundamental loops with B*ZB*B^T formulation                         |
+| **Req 7: Step-by-Step Presentation** | `PresentationContext`, `reportGenerator.ts`, react-markdown + KaTeX                       | LaTeX matrices, formatted equations, Markdown structure             |
+| **Req 8: Centralized State**         | Zustand `circuitStore`, controlled React Flow                                             | Single source of truth, no local React Flow state                   |
+| **Req 9: Three-Pane Layout**         | `App.tsx`, react-resizable-panels, `PanelGroup`                                           | Resizable panes with min/max constraints                            |
+| **Req 10: Pipeline Architecture**    | Three nested contexts: `ValidationContext` → `CalculationContext` → `PresentationContext` | Validation auto-runs, calculation on-demand, presentation auto-runs |
+| **Req 11: Theme System**             | `ThemeContext`, MUI ThemeProvider, theme toggle in `CircuitManagerPane`                   | Light/dark mode with localStorage persistence                       |
 
 ## Conclusion
 

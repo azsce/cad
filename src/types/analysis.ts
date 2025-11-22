@@ -3,7 +3,59 @@
  * These types represent the mathematical graph model used for nodal and loop analysis.
  */
 
-import type { Matrix } from 'mathjs';
+import type { Matrix } from "mathjs";
+
+/**
+ * Branded type for electrical node IDs.
+ * Prevents mixing up node IDs with other string types.
+ */
+export type NodeId = string & { readonly __brand: "NodeId" };
+
+/**
+ * Branded type for branch IDs.
+ * Prevents mixing up branch IDs with other string types.
+ */
+export type BranchId = string & { readonly __brand: "BranchId" };
+
+/**
+ * Branded type for spanning tree IDs.
+ * Prevents mixing up tree IDs with other string types.
+ */
+export type TreeId = string & { readonly __brand: "TreeId" };
+
+/**
+ * Branded type for connection point keys.
+ * Format: "componentId-handleId"
+ */
+export type ConnectionPointKey = string & { readonly __brand: "ConnectionPointKey" };
+
+/**
+ * Creates a NodeId from a string.
+ */
+export function createNodeId(id: string): NodeId {
+  return id as NodeId;
+}
+
+/**
+ * Creates a BranchId from a string.
+ */
+export function createBranchId(id: string): BranchId {
+  return id as BranchId;
+}
+
+/**
+ * Creates a TreeId from a string.
+ */
+export function createTreeId(id: string): TreeId {
+  return id as TreeId;
+}
+
+/**
+ * Creates a ConnectionPointKey from component and handle IDs.
+ */
+export function createConnectionPointKey(componentId: string, handleId: string): ConnectionPointKey {
+  return `${componentId}-${handleId}` as ConnectionPointKey;
+}
 
 /**
  * An electrical node in the circuit graph.
@@ -11,9 +63,9 @@ import type { Matrix } from 'mathjs';
  */
 export interface ElectricalNode {
   /** Unique identifier for the node */
-  id: string;
+  id: NodeId;
   /** IDs of all branches connected to this node */
-  connectedBranchIds: string[];
+  connectedBranchIds: BranchId[];
 }
 
 /**
@@ -22,15 +74,15 @@ export interface ElectricalNode {
  */
 export interface Branch {
   /** Unique identifier for the branch */
-  id: string;
+  id: BranchId;
   /** Type of electrical component */
-  type: 'resistor' | 'voltageSource' | 'currentSource';
+  type: "resistor" | "voltageSource" | "currentSource";
   /** Component value (resistance in Ω, voltage in V, current in A) */
   value: number;
   /** ID of the node at the start of the branch */
-  fromNodeId: string;
+  fromNodeId: NodeId;
   /** ID of the node at the end of the branch */
-  toNodeId: string;
+  toNodeId: NodeId;
 }
 
 /**
@@ -39,11 +91,11 @@ export interface Branch {
  */
 export interface SpanningTree {
   /** Unique identifier for this spanning tree */
-  id: string;
+  id: TreeId;
   /** Branch IDs that form the tree (twigs) */
-  twigBranchIds: string[];
+  twigBranchIds: BranchId[];
   /** Branch IDs not in the tree (links/co-tree) */
-  linkBranchIds: string[];
+  linkBranchIds: BranchId[];
   /** Optional human-readable description */
   description?: string;
 }
@@ -58,11 +110,11 @@ export interface AnalysisGraph {
   /** All branches (components) in the graph */
   branches: Branch[];
   /** ID of the reference (ground) node */
-  referenceNodeId: string;
+  referenceNodeId: NodeId;
   /** All possible spanning trees for this graph */
   allSpanningTrees: SpanningTree[];
   /** ID of the currently selected spanning tree for analysis */
-  selectedTreeId: string;
+  selectedTreeId: TreeId;
 }
 
 /**
@@ -101,7 +153,7 @@ export interface AnalysisStep {
  */
 export interface CalculationResult {
   /** Analysis method used */
-  method: 'nodal' | 'loop';
+  method: "nodal" | "loop";
 
   // Input matrices and vectors
   /** Incidence matrix A (for nodal/cut-set method) */

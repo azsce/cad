@@ -1,29 +1,16 @@
-import {
-  useMemo,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from 'react';
-import {
-  ThemeProvider as MuiThemeProvider,
-  createTheme,
-  CssBaseline,
-  type PaletteMode,
-} from '@mui/material';
-import { THEME_STORAGE_KEY, ThemeContext } from './ThemeContext';
+import { useMemo, useState, useEffect, useCallback, type ReactNode } from "react";
+import { ThemeProvider as MuiThemeProvider, createTheme, CssBaseline, type PaletteMode } from "@mui/material";
+import { THEME_STORAGE_KEY, ThemeContext } from "./ThemeContext";
 
 export function ThemeProvider({ children }: { readonly children: ReactNode }) {
   // Initialize theme from localStorage or system preference
   const [mode, setMode] = useState<PaletteMode>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark') {
+    if (stored === "light" || stored === "dark") {
       return stored;
     }
     // Default to system preference
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
+    return globalThis.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   // Persist theme preference
@@ -32,7 +19,7 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
   }, [mode]);
 
   const toggleTheme = useCallback(() => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+    setMode(prevMode => (prevMode === "light" ? "dark" : "light"));
   }, []);
 
   const theme = useMemo(
@@ -41,10 +28,10 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
         palette: {
           mode,
           primary: {
-            main: '#1976d2',
+            main: "#1976d2",
           },
           secondary: {
-            main: '#dc004e',
+            main: "#dc004e",
           },
         },
         components: {
@@ -53,9 +40,9 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
               body: {
                 margin: 0,
                 padding: 0,
-                width: '100vw',
-                height: '100vh',
-                overflow: 'hidden',
+                width: "100vw",
+                height: "100vh",
+                overflow: "hidden",
               },
             },
           },
@@ -64,10 +51,7 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
     [mode]
   );
 
-  const contextValue = useMemo(
-    () => ({ mode, toggleTheme }),
-    [mode, toggleTheme]
-  );
+  const contextValue = useMemo(() => ({ mode, toggleTheme }), [mode, toggleTheme]);
 
   return (
     <ThemeContext.Provider value={contextValue}>

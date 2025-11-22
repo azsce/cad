@@ -4,13 +4,14 @@
  * Displays resistor, voltage source, and current source options.
  */
 
-import { Box, Paper, Typography, Stack, Tooltip } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { useCallback, useMemo } from "react";
+import { Box, Paper, Typography, Stack, Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 /**
  * Component type identifier for drag-and-drop.
  */
-type ComponentType = 'resistor' | 'voltageSource' | 'currentSource';
+type ComponentType = "resistor" | "voltageSource" | "currentSource" | "junction";
 
 /**
  * Palette item configuration.
@@ -27,22 +28,28 @@ interface PaletteItem {
  */
 const paletteItems: PaletteItem[] = [
   {
-    type: 'resistor',
-    label: 'Resistor',
-    icon: '⚡',
-    description: 'Add a resistor component',
+    type: "resistor",
+    label: "Resistor",
+    icon: "〰️",
+    description: "Add a resistor component",
   },
   {
-    type: 'voltageSource',
-    label: 'Voltage Source',
-    icon: '🔋',
-    description: 'Add a voltage source',
+    type: "voltageSource",
+    label: "Voltage Source",
+    icon: "🔋",
+    description: "Add a voltage source",
   },
   {
-    type: 'currentSource',
-    label: 'Current Source',
-    icon: '⚡',
-    description: 'Add a current source',
+    type: "currentSource",
+    label: "Current Source",
+    icon: "⚡",
+    description: "Add a current source",
+  },
+  {
+    type: "junction",
+    label: "Junction",
+    icon: "⭕",
+    description: "Add a junction connection point",
   },
 ];
 
@@ -56,36 +63,40 @@ function PaletteItemComponent({ item }: { readonly item: PaletteItem }) {
    * Handle drag start event.
    * Sets the component type data for the drop handler.
    */
-  const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
-    // Set the component type in the drag data
-    // cspell:ignore reactflow
-    event.dataTransfer.setData('application/reactflow', item.type);
-    event.dataTransfer.effectAllowed = 'move';
-  };
+  const onDragStart = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      // Set the component type in the drag data
+      // cspell:ignore reactflow
+      event.dataTransfer.setData("application/reactflow", item.type);
+      event.dataTransfer.effectAllowed = "move";
+    },
+    [item.type]
+  );
+
+  const paperSx = useMemo(
+    () => ({
+      p: 2,
+      cursor: "grab",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 1,
+      transition: "all 0.2s",
+      "&:hover": {
+        bgcolor: "action.hover",
+        transform: "scale(1.05)",
+      },
+      "&:active": {
+        cursor: "grabbing",
+      },
+      border: `1px solid ${theme.palette.divider}`,
+    }),
+    [theme.palette.divider]
+  );
 
   return (
     <Tooltip title={item.description} placement="right">
-      <Paper
-        draggable
-        onDragStart={onDragStart}
-        sx={{
-          p: 2,
-          cursor: 'grab',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 1,
-          transition: 'all 0.2s',
-          '&:hover': {
-            bgcolor: 'action.hover',
-            transform: 'scale(1.05)',
-          },
-          '&:active': {
-            cursor: 'grabbing',
-          },
-          border: `1px solid ${theme.palette.divider}`,
-        }}
-      >
+      <Paper draggable onDragStart={onDragStart} sx={paperSx}>
         <Typography variant="h4" component="div">
           {item.icon}
         </Typography>
@@ -106,19 +117,19 @@ export function ComponentPalette() {
     <Box
       sx={{
         width: 120,
-        height: '100%',
+        height: "100%",
         p: 2,
-        bgcolor: 'background.paper',
+        bgcolor: "background.paper",
         borderRight: 1,
-        borderColor: 'divider',
-        overflowY: 'auto',
+        borderColor: "divider",
+        overflowY: "auto",
       }}
     >
       <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
         Components
       </Typography>
       <Stack spacing={2}>
-        {paletteItems.map((item) => (
+        {paletteItems.map(item => (
           <PaletteItemComponent key={item.type} item={item} />
         ))}
       </Stack>

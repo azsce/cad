@@ -1,0 +1,24 @@
+{
+  "recommendations": [
+    // TypeScript & JavaScript
+    "ms-vscode.vscode-typescript-next",
+    "typescriptteam.native-preview",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    // "oven.bun-vscode",
+    // "usernamehw.errorlens",
+    // Git
+    // "eamodio.gitlens",
+    // Markdown
+    // "davidanson.vscode-markdownlint",
+    // Themes
+    "pkief.material-icon-theme",
+    "hc.wallace-corporation",
+    // Testing
+    // "jestrunner.jestrunner",
+    // "orta.vscode-jest",
+    // code quality
+    "codescene.codescene-vscode-noace",
+    "codescene.codescene-vscode"
+  ]
+}

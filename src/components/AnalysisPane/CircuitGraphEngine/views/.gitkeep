@@ -1,0 +1,7 @@
+# Views directory for different visualization modes
+# This directory will contain:
+# - BasicGraphView.tsx
+# - SpanningTreeView.tsx
+# - LoopsView.tsx
+# - CutSetsView.tsx
+# - ResultsView.tsx

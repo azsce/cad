@@ -1,0 +1,5 @@
+# Engine modules will be implemented here
+# - GraphLayoutEngine.ts
+# - NodePlacer.ts
+# - EdgeRouter.ts
+# - LabelOptimizer.ts

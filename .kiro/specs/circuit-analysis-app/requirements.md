@@ -70,7 +70,7 @@ The application features a three-pane interface: a circuit manager for organizin
 2. WHEN nodes are identified THEN the system SHALL select one node as the reference (ground) node
 3. WHEN performing nodal analysis THEN the system SHALL construct the incidence matrix (A) based on branch-node connections
 4. WHEN performing nodal analysis THEN the system SHALL construct the branch admittance matrix (YB) as a diagonal matrix
-5. WHEN matrices are constructed THEN the system SHALL solve the equation (A * YB * A^T) * V = I_sources using linear algebra
+5. WHEN matrices are constructed THEN the system SHALL solve the equation (A _ YB _ A^T) \* V = I_sources using linear algebra
 6. WHEN the solution is obtained THEN the system SHALL calculate all branch currents from the node voltages
 7. IF the system of equations is singular THEN the system SHALL display an error indicating the circuit cannot be solved
 
@@ -86,7 +86,7 @@ The application features a three-pane interface: a circuit manager for organizin
 4. WHEN links are identified THEN the system SHALL define fundamental loops for each link
 5. WHEN loops are defined THEN the system SHALL construct the tie-set matrix (B) from the fundamental loops
 6. WHEN performing loop analysis THEN the system SHALL construct the branch impedance matrix (ZB)
-7. WHEN matrices are constructed THEN the system SHALL solve the equation (B * ZB * B^T) * I_loop = V_sources using linear algebra
+7. WHEN matrices are constructed THEN the system SHALL solve the equation (B _ ZB _ B^T) \* I_loop = V_sources using linear algebra
 8. WHEN the solution is obtained THEN the system SHALL calculate all branch voltages and currents
 9. IF the system of equations is singular THEN the system SHALL display an error indicating the circuit cannot be solved
 

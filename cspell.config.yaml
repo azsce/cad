@@ -1,0 +1,28 @@
+version: "0.2"
+language: en
+words:
+  - nodrag
+  - nopan
+  - Pico
+  - Tera
+  - Giga
+  - Milli
+  - pico
+  - sonarjs
+  - lusolve
+  - pmatrix
+  - overbar
+  - infty
+  - Cytoscape
+  - cutset
+  - cutsets
+  - CUTSET
+  - breadthfirst
+  - Breadthfirst
+  - halign
+  - autorotate
+  - Katex
+  - azsce
+  - Renderable
+  - zoomable
+  - pannable

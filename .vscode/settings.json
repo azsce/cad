@@ -1,0 +1,40 @@
+{
+  // Always use workspace TypeScript (no prompt)
+  "typescript.tsdk": "node_modules/typescript/lib",
+  // "typescript.experimental.useTsgo": true,
+  // Show prompt when workspace TS is detected
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  // Apollo DevTools configuration
+  "apollo.devTools.enabled": true,
+  "apollo.devTools.port": 7095,
+  "apollo.devTools.targetUri": "ws://localhost:7095",
+  // Jest configuration to use Bun
+  "jestrunner.jestCommand": "~/.bun/bin/bun test",
+  "jestrunner.runOptions": ["--verbose"],
+  "jestrunner.debugOptions": ["--inspect-brk"],
+  "jestrunner.changeDirectoryToWorkspaceRoot": true,
+  // Jest extension settings
+  "jest.jestCommandLine": "~/.bun/bin/bun test",
+  "jest.autoRun": "off",
+  "jest.showCoverageOnLoad": "off",
+  "testing.automaticallyOpenTestResults": "neverOpen",
+  "jest.outputConfig": {
+    "revealOn": "run",
+    "revealWithFocus": "none",
+    "clearOnRun": "none"
+  },
+  // sonarlint
+  "sonarlint.pathToNodeExecutable": "/home/vscode/.nvm/versions/node/v25.1.0/bin/node",
+  "sonarlint.rules": {
+    "typescript:S125": {
+      "level": "off"
+    }
+  },
+  "cSpell.words": ["toolpad", "xyflow"],
+  "sonarlint.connectedMode.project": {
+    "connectionId": "azsce",
+    "projectKey": "azsce_cad"
+  },
+  "kiroAgent.configureMCP": "Disabled",
+  "typescript.autoClosingTags": false
+}

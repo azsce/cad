@@ -9,31 +9,43 @@ import globals from "globals";
 export default [
   {
     ignores: [
-      "node_modules/**",
-      ".next/**",
-      "logs/**",
-      "storage/**",
-      ".cursor/**",
-      "build/**",
-      "dist/**",
-      "out/**",
-      "client/graphql/generated/**",
+      // Directories (without trailing slash for ESLint 9)
+      "node_modules",
+      ".next",
+      "logs",
+      "storage",
+      ".cursor",
+      "build",
+      "dist",
+      "out",
+      ".scannerwork",
+      "docs",
+      ".git",
+      ".kiro",
+      ".vscode",
+      ".devcontainer",
+      ".github",
+      ".ai",
+      // File patterns
+      "**/*.d.ts",
       "next-env.d.ts",
       "eslint.config.ts",
-      "*.d.ts",
       "debug-eslint.js",
+      "bun.lock",
+      "*.lock",
+      "*.log",
     ],
   },
   eslint.configs.recommended,
   sonarjs.configs.recommended,
   cspellESLintPluginRecommended,
-  
+
   // TypeScript and React-specific configuration
-  ...tseslint.configs.strictTypeChecked.map((config) => ({
+  ...tseslint.configs.strictTypeChecked.map(config => ({
     ...config,
     files: ["**/*.{ts,tsx}"],
   })),
-  
+
   {
     files: ["**/*.{ts,tsx}"],
     plugins: {
@@ -44,22 +56,19 @@ export default [
       ecmaVersion: 2020,
       globals: globals.browser,
       parserOptions: {
-        projectService: true,
+        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
       // React rules
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
-      
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+
       // TypeScript rules
       // Note: you must disable the base rule as it can report incorrect errors
       "no-throw-literal": "off",
-      "@typescript-eslint/only-throw-error": "warn",
+      "@typescript-eslint/only-throw-error": "off",
 
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -83,6 +92,12 @@ export default [
        */
       "@typescript-eslint/no-explicit-any": "error",
 
+      /**
+       * Disallow direct use of console methods.
+       * Use the logger utility instead: import { logger } from '@/utils/logger'
+       */
+      "no-console": "error",
+
       // Spell checking
       "@cspell/spellchecker": [
         "warn",
@@ -92,6 +107,16 @@ export default [
           cspellOptionsRoot: import.meta.url,
         },
       ],
+    },
+  },
+
+  // Allow console in logger implementation and vite config
+  {
+    files: ["src/utils/logger/**/*.ts", "vite.config.ts"],
+    rules: {
+      "no-console": "off",
+      "sonarjs/no-nested-functions": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
     },
   },
 ];
